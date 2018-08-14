@@ -1,2 +1,3 @@
 cloudshell-core==2.2.176
-cloudshell-L1-networking-core>=1.0,<1.1
+git+https://github.com/QualiSystems/cloudshell-cli.git@remove_command_and_prompt#egg=cloudshell_cli
+git+https://github.com/QualiSystems/cloudshell-L1-networking-core.git@dev#egg=cloudshell_l1_networking_core
