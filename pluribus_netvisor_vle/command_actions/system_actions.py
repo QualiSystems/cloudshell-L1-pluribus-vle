@@ -69,7 +69,7 @@ class SystemActions(object):
             out = CommandTemplateExecutor(self._cli_service, command_template.SET_AUTO_NEG_OFF).execute_command(
                 port_id=logical_port_id)
 
-    def get_fabric_name(self):
+    def get_fabric_info(self):
         out = CommandTemplateExecutor(self._cli_service, command_template.FABRIC_INFO,
                                       remove_prompt=True).execute_command()
-        return ActionsHelper.parse_table(out).get('name')
+        return ActionsHelper.parse_table(out)

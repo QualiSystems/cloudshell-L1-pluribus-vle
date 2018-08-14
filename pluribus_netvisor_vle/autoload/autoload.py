@@ -1,54 +1,63 @@
-from cloudshell.layer_one.core.response.resource_info.entities.blade import Blade
-from cloudshell.layer_one.core.response.resource_info.entities.chassis import Chassis
-from pluribus_netvisor_vle.autoload.vw_port import VWPort
+from pluribus_netvisor_vle.autoload.vle_blade import VLEBlade
+from pluribus_netvisor_vle.autoload.vle_fabric import VLEFabric
+from pluribus_netvisor_vle.autoload.vle_port import VLEPort
 
 
 class Autoload(object):
-    def __init__(self, resource_address, fabric_name, board_table, ports_table, associations_table, logger):
+    def __init__(self, resource_address, fabric_name, fabric_id, nodes_table, ports_table, associations_table, logger):
         self._logger = logger
-        self._board_table = board_table
+        self._fabric_name = fabric_name
+        self._fabric_id = fabric_id
+        self._nodes_table = nodes_table
         self._ports_table = ports_table
         self._resource_address = resource_address
         self._associations_table = associations_table
 
-        self._chassis_id = '1'
-        self._blade_id = '1'
-
     def _build_fabric(self):
-        chassis_dict = {}
+        fabric = VLEFabric(self._fabric_name, self._resource_address, self._fabric_id)
+        fabric.set_fabric_name(self._fabric_name)
+        fabric.set_serial_number(self._fabric_id)
+        return fabric
 
-        serial_number = self._board_table.get('chassis-serial')
-        model_name = self._board_table.get('model')
-        sw_version = self._board_table.get('version')
-        chassis = Chassis(self._chassis_id, self._resource_address, 'Pluribus Virtual Wire Chassis', serial_number)
-        chassis.set_model_name(model_name)
-        chassis.set_serial_number(serial_number)
-        chassis.set_os_version(sw_version)
-        chassis_dict[self._chassis_id] = chassis
-        return chassis_dict
+    def build_fabric_nodes(self, fabric):
+        nodes_dict = {}
+        for nodename, node_data in self._nodes_table.iteritems():
+            node = VLEBlade(nodename)
+            node.set_model_name(node_data.get('model'))
+            node.set_serial_number(node_data.get('chassis-serial'))
+            node.set_parent_resource(fabric)
+            nodes_dict[nodename] = node
+        return nodes_dict
 
-    def build_blade(self, chassis_dict):
-        blade_model = 'Virtal Wire Module'
-        blade = Blade(self._blade_id)
-        blade.set_model_name(blade_model)
-        blade.set_parent_resource(chassis_dict.get(self._chassis_id))
-        return {self._blade_id: blade}
-
-    def _build_ports(self, blades_dict):
+    def _build_ports(self, nodes_dict):
         ports_dict = {}
-        blade = blades_dict.get(self._blade_id)
-        for port_id, port_record in self._ports_table.iteritems():
+        for node_id, ports_data in self._ports_table.iteritems():
+            fabric_node = nodes_dict.get(node_id)
+            ports_dict.update(self._build_ports_for_node(fabric_node, ports_data))
+        return ports_dict
+
+    def _build_ports_for_node(self, fabric_node, ports_data):
+        """
+        Ports for fabric node
+        :type fabric_node: pluribus_netvisor_vle.autoload.vle_blade.VLEBlade
+        :type ports_data: dict
+        :rtype: dict
+        """
+        ports_dict = {}
+
+        for port_id, port_record in ports_data.iteritems():
             speed = port_record.get('speed')
-            # autoneg = port_record.get('autoneg')
+            autoneg = port_record.get('autoneg')
             phys_id = port_record.get('phys_id')
-            port = VWPort(port_id, phys_id)
-            port.set_model_name('{} Port'.format(self._board_table.get('model')))
-            # port.set_auto_negotiation(autoneg == 'on')
+
+            port = VLEPort(port_id, phys_id)
+            port.set_model_name('{} Port'.format(fabric_node.get_model_name()))
+            port.set_auto_negotiation(autoneg == 'on')
             # port.set_protocol_type_by_speed(speed)
             # port.set_protocol('80')
             port.set_port_speed(speed)
-            port.set_parent_resource(blade)
-            ports_dict[port_id] = port
+            port.set_parent_resource(fabric_node)
+            ports_dict[(fabric_node.resource_id, port_id)] = port
         return ports_dict
 
     def _build_mappings(self, ports_dict):
@@ -59,8 +68,8 @@ class Autoload(object):
                 slave_port.add_mapping(master_port)
 
     def build_structure(self):
-        chassis_dict = self._build_chassis()
-        blades_dict = self.build_blade(chassis_dict)
-        ports_dict = self._build_ports(blades_dict)
+        fabric = self._build_fabric()
+        nodes_dict = self.build_fabric_nodes(fabric)
+        ports_dict = self._build_ports(nodes_dict)
         self._build_mappings(ports_dict)
-        return chassis_dict.values()
+        return [fabric]

@@ -27,6 +27,7 @@ class DriverCommands(DriverCommandsInterface):
         self._cli_handler = VWCliHandler(self._logger)
 
         self._fabric_name = None
+        self._fabric_id = None
         self._fabric_nodes = []
 
         self.__mapping_actions = None
@@ -65,7 +66,9 @@ class DriverCommands(DriverCommandsInterface):
         self._cli_handler.define_session_attributes(address, username, password)
         with self._cli_handler.default_mode_service() as cli_service:
             system_actions = SystemActions(cli_service, self._logger)
-            self._fabric_name = system_actions.get_fabric_name()
+            fabric_info = system_actions.get_fabric_info()
+            self._fabric_name = fabric_info.get('name')
+            self._fabric_id = fabric_info.get('id')
             if not self._fabric_name:
                 raise Exception(self.__class__.__name__, "Fabric is not defined")
             # self._fabric_nodes = system_actions.get_fabric_nodes(self._fabric_name)
@@ -191,11 +194,13 @@ class DriverCommands(DriverCommandsInterface):
             autoload_actions = AutoloadActions(session, self._logger)
             nodes_table = autoload_actions.fabric_nodes_table(self._fabric_name)
             ports_table = {node: autoload_actions.ports_table(node) for node in nodes_table}
-            print(nodes_table)
+            associations_table = autoload_actions.associations_table()
+            # print(nodes_table)
             # ports_table = autoload_actions.ports_table()
             # association_table = autoload_actions.associations_table()
-            # autoload_helper = Autoload(address, boart_table, ports_table, association_table, self._logger)
-            # return ResourceDescriptionResponseInfo(autoload_helper.build_structure())
+            autoload_helper = Autoload(address, self._fabric_name, self._fabric_id, nodes_table, ports_table, associations_table,
+                                       self._logger)
+            return ResourceDescriptionResponseInfo(autoload_helper.build_structure())
 
     def map_clear(self, ports):
         """

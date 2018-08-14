@@ -73,36 +73,49 @@ class AutoloadActions(object):
 
         return phys_ports_table
 
-    @staticmethod
-    def _parse_ports(ports):
-        port_list = []
-        single_records = ports.split(',')
-        for record in single_records:
-            if '-' in record:
-                start, end = map(int, record.split("-"))
-                range_list = map(str, range(start, end + 1))
-            else:
-                range_list = [record]
-            port_list.extend(range_list)
-        return port_list
+    # @staticmethod
+    # def _parse_ports(ports):
+    #     port_list = []
+    #     single_records = ports.split(',')
+    #     for record in single_records:
+    #         if '-' in record:
+    #             start, end = map(int, record.split("-"))
+    #             range_list = map(str, range(start, end + 1))
+    #         else:
+    #             range_list = [record]
+    #         port_list.extend(range_list)
+    #     return port_list
 
-    def _validate_port(self, port):
-        if re.search(r'[-,]', port):
-            raise Exception(self.__class__.__name__, 'Cannot build mappings, driver does not support port ranges')
-
+    # def _validate_port(self, port):
+    #     if re.search(r'[-,]', port):
+    #         raise Exception(self.__class__.__name__, 'Cannot build mappings, driver does not support port ranges')
+    #
+    # def associations_table(self):
+    #     associations_table = {}
+    #     associations_output = CommandTemplateExecutor(self._cli_service,
+    #                                                   command_template.ASSOCIATIONS).execute_command()
+    #     for record in re.findall(r'^[\d,-]+:[\d,-]+:\w+$', associations_output, flags=re.MULTILINE):
+    #         master_ports, slave_ports, bidir = re.split(r':', record.strip())
+    #         self._validate_port(master_ports)
+    #         self._validate_port(slave_ports)
+    #         if bidir.lower() == 'true':
+    #             associations_table[master_ports] = slave_ports
+    #             associations_table[slave_ports] = master_ports
+    #         else:
+    #             associations_table[slave_ports] = master_ports
+    #     return associations_table
     def associations_table(self):
+        out = CommandTemplateExecutor(self._cli_service, command_template.VLE_SHOW,
+                                      remove_prompt=True).execute_command()
+
         associations_table = {}
-        associations_output = CommandTemplateExecutor(self._cli_service,
-                                                      command_template.ASSOCIATIONS).execute_command()
-        for record in re.findall(r'^[\d,-]+:[\d,-]+:\w+$', associations_output, flags=re.MULTILINE):
-            master_ports, slave_ports, bidir = re.split(r':', record.strip())
-            self._validate_port(master_ports)
-            self._validate_port(slave_ports)
-            if bidir.lower() == 'true':
-                associations_table[master_ports] = slave_ports
-                associations_table[slave_ports] = master_ports
-            else:
-                associations_table[slave_ports] = master_ports
+        for line in out.splitlines():
+            match = re.match(r'\s*(.+)\:(.+)\:(.+)\:(.+)\:(.+)\s*', line)
+            if match:
+                master_port = (match.group(2), match.group(4))
+                slave_port = (match.group(3), match.group(5))
+                associations_table[master_port] = slave_port
+                associations_table[slave_port] = master_port
         return associations_table
 
     def fabric_nodes_table(self, fabric_name):

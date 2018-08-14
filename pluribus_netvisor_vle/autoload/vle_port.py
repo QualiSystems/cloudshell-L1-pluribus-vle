@@ -3,7 +3,7 @@ from cloudshell.layer_one.core.response.resource_info.entities.base import Resou
 from cloudshell.layer_one.core.response.resource_info.entities.port import Port
 
 
-class VWPort(Port):
+class VLEPort(Port):
     PROTOCOL_TYPE_VALUES = {
         '1g': '81',
         '10g': '82',
