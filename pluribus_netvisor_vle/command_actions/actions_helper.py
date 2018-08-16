@@ -19,7 +19,7 @@ class ActionsHelper(object):
     def parse_table(out):
         table = {}
         for line in out.splitlines():
-            match = re.match(r'\s*(.+):(.+)\s*', line)
-            if match:
-                table[match.group(1).strip()] = match.group(2).strip()
+            key_value = line.split(':', 1)
+            if len(key_value) == 2:
+                table[key_value[0].strip()] = key_value[1].strip()
         return table

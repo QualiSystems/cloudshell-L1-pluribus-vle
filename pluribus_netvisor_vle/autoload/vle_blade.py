@@ -7,7 +7,7 @@ from cloudshell.layer_one.core.response.resource_info.entities.validators import
 
 class VLEBlade(Blade):
     """Blade resource entity"""
-    NAME_TEMPLATE = 'Blade {}'
+    NAME_TEMPLATE = 'Node {}'
     FAMILY_NAME = 'L1 Switch Blade'
     MODEL_NAME = 'Generic L1 Module'
 
