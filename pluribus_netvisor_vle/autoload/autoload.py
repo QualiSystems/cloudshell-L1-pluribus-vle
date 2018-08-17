@@ -48,9 +48,9 @@ class Autoload(object):
         for port_id, port_record in ports_data.iteritems():
             speed = port_record.get('speed')
             autoneg = port_record.get('autoneg')
-            phys_id = port_record.get('phys_id')
+            # phys_id = port_record.get('phys_id')
 
-            port = VLEPort(port_id, phys_id)
+            port = VLEPort(port_id)
             port.set_model_name('{} Port'.format(fabric_node.get_model_name()))
             port.set_auto_negotiation(autoneg == 'on')
             # port.set_protocol_type_by_speed(speed)

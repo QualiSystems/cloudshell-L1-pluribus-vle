@@ -73,3 +73,39 @@ class SystemActions(object):
         out = CommandTemplateExecutor(self._cli_service, command_template.FABRIC_INFO,
                                       remove_prompt=True).execute_command()
         return ActionsHelper.parse_table(out)
+
+    def tunnels_table(self):
+        out = CommandTemplateExecutor(self._cli_service, command_template.TUNNEL_INFO,
+                                      remove_prompt=True).execute_command()
+        switch_key = 'switch'
+        tunnel_name_key = 'tunnel_name'
+        local_ip_key = 'local_ip'
+        remote_ip_key = 'remote_ip'
+        # out_list = []
+        # for line in out.splitlines():
+        #     values = line.strip().split(':')
+        #     if len(values) == 4:
+        #         result = {switch_key: values[0], tunnel_name_key: values[1], local_ip_key: values[2],
+        #                   remote_ip_key: values[3]}
+        #         out_list.append(result)
+        out_list = ActionsHelper.parse_table_by_keys(out, switch_key, tunnel_name_key, local_ip_key, remote_ip_key)
+        switch_ip_table = {data[local_ip_key]: data[switch_key] for data in out_list}
+        tunnels_table = {}
+        for data_table in out_list:
+            tunnel_nodes = (data_table[switch_key], switch_ip_table[data_table[remote_ip_key]])
+            tunnels_table[tunnel_nodes] = data_table[tunnel_name_key]
+        return tunnels_table
+
+    def get_available_vlan_id(self, min_vlan, max_vlan):
+        out = CommandTemplateExecutor(self._cli_service, command_template.VLAN_SHOW,
+                                      remove_prompt=True).execute_command()
+        switch_name_key = 'switch_name'
+        vlan_id_key = 'vlan_id'
+        vxlan_key = 'vxlan'
+        description_key = 'description'
+        out_list = ActionsHelper.parse_table_by_keys(out, switch_name_key, vlan_id_key, vxlan_key, description_key)
+        busy_vlans = [int(data[vlan_id_key]) for data in out_list]
+        available_vlan_id = list(set(range(min_vlan, max_vlan + 1)) - set(busy_vlans))[0]
+        if available_vlan_id:
+            return available_vlan_id
+        raise Exception(self.__class__.__name__, 'Cannot determine available vlan id')

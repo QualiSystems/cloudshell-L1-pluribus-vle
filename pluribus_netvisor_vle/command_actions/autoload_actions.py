@@ -50,28 +50,29 @@ class AutoloadActions(object):
                                                      command_template.PORT_SHOW).execute_command(
             switch_name=switch_name)
 
-        phys_ports = self.phys_ports_table(switch_name)
+        # phys_ports = self.phys_ports_table(switch_name)
         for record in re.findall(r'^\d+:.+:.+$', logic_ports_output, flags=re.MULTILINE):
             port_id, speed, autoneg = re.split(r':', record.strip())
             port_id = port_id
             speed = speed
             autoneg = autoneg
-            phys_id = phys_ports.get(port_id)
-            if phys_id:
-                port_table[port_id] = {'speed': speed, 'autoneg': autoneg, 'phys_id': phys_id}
+            # phys_id = phys_ports.get(port_id)
+            # if phys_id:
+            # port_table[port_id] = {'speed': speed, 'autoneg': autoneg, 'phys_id': phys_id}
+            port_table[port_id] = {'speed': speed, 'autoneg': autoneg}
 
         return port_table
 
-    def phys_ports_table(self, switch_name):
-        phys_ports_table = {}
-        phys_ports_output = CommandTemplateExecutor(self._cli_service,
-                                                    command_template.PHYS_PORT_SHOW).execute_command(
-            switch_name=switch_name)
-        for record in re.findall(r'^\d+:.+$', phys_ports_output, flags=re.MULTILINE):
-            logical_id, phys_id = re.split(r':', record.strip())
-            phys_ports_table[logical_id] = phys_id
-
-        return phys_ports_table
+    # def phys_ports_table(self, switch_name):
+    #     phys_ports_table = {}
+    #     phys_ports_output = CommandTemplateExecutor(self._cli_service,
+    #                                                 command_template.PHYS_PORT_SHOW).execute_command(
+    #         switch_name=switch_name)
+    #     for record in re.findall(r'^\d+:.+$', phys_ports_output, flags=re.MULTILINE):
+    #         logical_id, phys_id = re.split(r':', record.strip())
+    #         phys_ports_table[logical_id] = phys_id
+    #
+    #     return phys_ports_table
 
     # @staticmethod
     # def _parse_ports(ports):

@@ -1,4 +1,4 @@
-class MappingHelpers(object):
+class ActionsHelper(object):
     @staticmethod
     def parse_ports(ports):
         port_list = []
@@ -11,3 +11,5 @@ class MappingHelpers(object):
                 range_list = [record]
             port_list.extend(range_list)
         return port_list
+
+
