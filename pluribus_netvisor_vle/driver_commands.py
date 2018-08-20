@@ -292,32 +292,9 @@ class DriverCommands(DriverCommandsInterface):
                     session.send_command('map clear-to {0} {1}'.format(_src_port, _dst_port))
         """
         self._logger.info('MapClearTo, SrcPort: {0}, DstPorts: {1}'.format(src_port, ','.join(dst_ports)))
-        self.map_clear([src_port])
-        # with self._cli_handler.default_mode_service() as session:
-        #     exception_messages = []
-        #     # system_actions = SystemActions(session, self._logger)
-        #     mapping_actions = MappingActions(session, self._logger)
-        #     connection_table = mapping_actions.connection_table()
-        #     src_node, src_port = self._convert_port_address(src_port)
-        #     for dst_port in dst_ports:
-        #         dst_record = connection_table.get(src_node)
-        #         dst_node, dst_port = self._convert_port_address(dst_port)
-        #         if not dst_record:
-        #             return
-        #         (dst_node, dst_port), vle_name = dst_record
-        #         try:
-        #             vlan_id = mapping_actions.vlan_id_for_port(src_node, src_port)
-        #             if src_node == dst_node:
-        #                 mapping_actions.delete_single_node_vle(src_node, vle_name, vlan_id)
-        #             else:
-        #                 mapping_actions.delete_multi_node_vle(src_node, dst_node, vle_name, vlan_id)
-        #         except Exception as e:
-        #             if len(e.args) > 1:
-        #                 exception_messages.append(e.args[1])
-        #             elif len(e.args) == 1:
-        #                 exception_messages.append(e.args[0])
-        #     if exception_messages:
-        #         raise Exception(self.__class__.__name__, ', '.join(exception_messages))
+        ports = [src_port]
+        ports.extend(dst_ports)
+        self.map_clear(ports)
 
     def get_attribute_value(self, cs_address, attribute_name):
         """
@@ -338,10 +315,7 @@ class DriverCommands(DriverCommandsInterface):
         """
         if attribute_name == 'Serial Number':
             if len(cs_address.split('/')) == 1:
-                with self._cli_handler.default_mode_service() as session:
-                    autoload_actions = AutoloadActions(session, self._logger)
-                    board_table = autoload_actions.board_table()
-                    return AttributeValueResponseInfo(board_table.get('chassis-serial'))
+                return AttributeValueResponseInfo(self._fabric_id)
             else:
                 return AttributeValueResponseInfo('NA')
         else:
@@ -366,13 +340,13 @@ class DriverCommands(DriverCommandsInterface):
                 session.send_command(command)
                 return AttributeValueResponseInfo(attribute_value)
         """
-        if attribute_name == 'Auto Negotiation':
-            with self._cli_handler.default_mode_service() as session:
-                with ActionsManager(self._system_actions, session) as system_actions:
-                    system_actions.set_auto_negotiation(self._convert_port_address(cs_address), attribute_value)
-        else:
-            raise LayerOneDriverException(self.__class__.__name__,
-                                          'SetAttributeValue for address {} is not supported'.format(cs_address))
+        # if attribute_name == 'Auto Negotiation':
+        #     with self._cli_handler.default_mode_service() as session:
+        #         with ActionsManager(self._system_actions, session) as system_actions:
+        #             system_actions.set_auto_negotiation(self._convert_port_address(cs_address), attribute_value)
+        # else:
+        raise LayerOneDriverException(self.__class__.__name__,
+                                      'SetAttributeValue for address {} is not supported'.format(cs_address))
 
     def map_tap(self, src_port, dst_ports):
         raise Exception(self.__class__.__name__, 'MapTap is not supported')
@@ -386,7 +360,7 @@ class DriverCommands(DriverCommandsInterface):
         :param duplex:
         :return:
         """
-        pass
+        raise NotImplementedError
 
     @staticmethod
     def _convert_port_address(port):
