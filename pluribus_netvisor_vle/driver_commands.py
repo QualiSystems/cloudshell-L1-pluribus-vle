@@ -135,24 +135,21 @@ class DriverCommands(DriverCommandsInterface):
         """
         self._logger.info('MapBidi, SrcPort: {0}, DstPort: {1}'.format(src_port, dst_port))
         with self._cli_handler.default_mode_service() as session:
-            # with AcionsManager(self._mapping_actions, session) as mapping_actions:
             system_actions = SystemActions(session, self._logger)
             mapping_actions = MappingActions(session, self._logger)
             src_node, src_port = self._convert_port_address(src_port)
             dst_node, dst_port = self._convert_port_address(dst_port)
-
             vlan_id = system_actions.get_available_vlan_id(self._vlan_min, self._vlan_max)
-            vxlan_id = vlan_id
             vle_name = self._vle_prefix + str(vlan_id)
 
             if src_node == dst_node:
-                mapping_actions.map_bidi_single_node(src_node, src_port, dst_port, vlan_id, vxlan_id, vle_name)
+                mapping_actions.map_bidi_single_node(src_node, src_port, dst_port, vlan_id, vle_name)
             else:
                 src_tunnel = self._tunnels_table.get((src_node, dst_node))
                 dst_tunnel = self._tunnels_table.get((dst_node, src_node))
                 if src_tunnel and dst_tunnel:
                     mapping_actions.map_bidi_multi_node(src_node, dst_node, src_port, dst_port, src_tunnel, dst_tunnel,
-                                                        vlan_id, vxlan_id, vle_name)
+                                                        vlan_id, vle_name)
                 else:
                     raise Exception(self.__class__.__name__, 'Cannot find the appropriate tunnel')
 
@@ -269,10 +266,11 @@ class DriverCommands(DriverCommandsInterface):
                 raise Exception(self.__class__.__name__, ', '.join(exception_messages))
 
     def _validate_vlan_id(self, vlan_id):
-        if self._vlan_min <= int(vlan_id) <= self._vlan_max:
+        if vlan_id and self._vlan_min <= int(vlan_id) <= self._vlan_max:
             return
         else:
-            raise Exception(self.__class__.__name__, 'Vlan id {} is not from allocated range'.format(vlan_id))
+            raise Exception(self.__class__.__name__,
+                            'Vlan id {} is not correct or is not from allocated range'.format(vlan_id))
 
     def map_clear_to(self, src_port, dst_ports):
         """

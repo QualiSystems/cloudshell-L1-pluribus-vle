@@ -24,5 +24,16 @@ DELETE_VLAN = CommandTemplate('switch {node} vlan-delete id {vlan_id}', ACTION_M
 VLE_SHOW = CommandTemplate('vle-show format name,node-1,node-2,node-1-port,node-2-port, parsable-delim ":"', ACTION_MAP,
                            ERROR_MAP)
 
-PORT_VLAN_INFO = CommandTemplate('switch {node} port-vlan-show ports {port} format switch,port,vlans parsable-delim ":"',
-                                 ACTION_MAP, ERROR_MAP)
+PORT_VLAN_INFO = CommandTemplate(
+    'switch {node} port-vlan-show ports {port} format switch,port,vlans parsable-delim ":"',
+    ACTION_MAP, ERROR_MAP)
+
+VLE_SHOW_FOR_NAME = CommandTemplate(
+    'vle-show name {vle_name} format name,node-1,node-2,node-1-port,node-2-port,status, parsable-delim ":"', ACTION_MAP,
+    ERROR_MAP)
+
+VXLAN_SHOW = CommandTemplate('switch {node_name} tunnel-vxlan-show vxlan {vxlan_id} parsable-delim ":"', ACTION_MAP,
+                             ERROR_MAP)
+
+VLAN_SHOW = CommandTemplate('switch {node_name} vlan-show id {vlan_id} format id,switch,vxlan parsable-delim ":"',
+                            ACTION_MAP, ERROR_MAP)
