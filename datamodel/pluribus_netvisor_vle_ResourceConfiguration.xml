@@ -140,7 +140,7 @@
         <ResourceFamily Name="L1 Switch" IsMappableContainer="true" IsMappable="false"
                         IsConnectable="false" IsLicenseCheckRequired="false" IsAllConnectedContainer="false"
                         IsLockedByDefault="false" AcceptsMultipleConnections="false" Description=""
-                        SupportsMulticastMapping="true" SupportsLoopbackMapping="true" IsPowerSwitch="false"
+                        SupportsMulticastMapping="false" SupportsLoopbackMapping="true" IsPowerSwitch="false"
                         IsConsoleServer="false">
             <AttachedAttributes>
                 <AttachedAttribute Name="User" IsOverridable="true" IsLocal="true">

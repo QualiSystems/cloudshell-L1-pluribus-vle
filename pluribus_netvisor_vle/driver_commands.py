@@ -246,12 +246,12 @@ class DriverCommands(DriverCommandsInterface):
             exception_messages = []
             # system_actions = SystemActions(session, self._logger)
             mapping_actions = MappingActions(session, self._logger)
-            connection_table = mapping_actions.connection_table()
             for port in ports:
                 src_node, src_port = self._convert_port_address(port)
+                connection_table = mapping_actions.connection_table()
                 dst_record = connection_table.get((src_node, src_port))
                 if not dst_record:
-                    return
+                    continue
                 (dst_node, dst_port), vle_name = dst_record
                 try:
                     vlan_id = mapping_actions.vlan_id_for_port(src_node, src_port)

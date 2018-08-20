@@ -99,7 +99,7 @@ class MappingActions(object):
         vlan_id_key = 'vlan'
 
         out_table = ActionsHelper.parse_table_by_keys(out, node_key, port_key, vlan_id_key)
-        vlan_id = int(out_table[0].get(vlan_id_key))
+        vlan_id = out_table[0].get(vlan_id_key)
         if vlan_id:
-            return vlan_id
+            return int(vlan_id)
         raise Exception(self.__class__.__name__, 'Cannet determine vlan_id')
