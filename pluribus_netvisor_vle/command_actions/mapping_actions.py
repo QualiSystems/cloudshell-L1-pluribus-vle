@@ -113,7 +113,7 @@ class MappingActions(object):
 
     def _validate_port_is_not_a_member(self, node, port):
         vlan_member = self.vlan_id_for_port(node, port)
-        if vlan_member:
+        if vlan_member and vlan_member != 1:
             raise Exception(self.__class__.__name__,
                             'Port {} already a member of vlan_id {}'.format((node, port), vlan_member))
 
@@ -123,7 +123,6 @@ class MappingActions(object):
             raise Exception(self.__class__.__name__, 'Cannot add port {} to vlan {}'.format((node, port), vlan_id))
 
     def _validate_vxlan_add(self, node_name, vxlan_id, tunnel):
-
         switch_key = 'switch'
         tunnel_name_key = 'tunnel_name'
         vxlan_id_key = 'vxlan_id'
