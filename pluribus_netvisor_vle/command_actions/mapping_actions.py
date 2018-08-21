@@ -36,6 +36,8 @@ class MappingActions(object):
         self._cli_service = cli_service
 
     def map_bidi_multi_node(self, src_node, dst_node, src_port, dst_port, src_tunnel, dst_tunnel, vlan_id, vle_name):
+        self._validate_port_is_not_a_member(src_node, src_port)
+        self._validate_port_is_not_a_member(dst_node, dst_port)
         self._create_vlan(src_node, src_port, vlan_id)
         out = CommandTemplateExecutor(self._cli_service, command_template.ADD_VXLAN_TO_TUNNEL).execute_command(
             node_name=src_node, tunnel_name=src_tunnel, vxlan_id=vlan_id)
@@ -51,6 +53,8 @@ class MappingActions(object):
         self._validate_vle_creation(vle_name)
 
     def map_bidi_single_node(self, node, src_port, dst_port, vlan_id, vle_name):
+        self._validate_port_is_not_a_member(node, src_port)
+        self._validate_port_is_not_a_member(node, dst_port)
         self._create_vlan(node, src_port, vlan_id)
         self._add_to_vlan(node, dst_port, vlan_id)
 
@@ -96,13 +100,13 @@ class MappingActions(object):
         return connection_table
 
     def _create_vlan(self, node, port, vlan_id):
-        self._validate_port_is_not_a_member(node, port)
+        # self._validate_port_is_not_a_member(node, port)
         out = CommandTemplateExecutor(self._cli_service, command_template.CREATE_VLAN, ).execute_command(
             node_name=node, vlan_id=vlan_id, vxlan_id=vlan_id, port=port)
         self._validate_port_is_a_member(node, port, vlan_id)
 
     def _add_to_vlan(self, node, port, vlan_id):
-        self._validate_port_is_not_a_member(node, port)
+        # self._validate_port_is_not_a_member(node, port)
         out = CommandTemplateExecutor(self._cli_service, command_template.ADD_TO_VLAN).execute_command(
             node_name=node, vlan_id=vlan_id, port=port)
         self._validate_port_is_a_member(node, port, vlan_id)
