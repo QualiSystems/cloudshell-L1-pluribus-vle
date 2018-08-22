@@ -37,3 +37,6 @@ VXLAN_SHOW = CommandTemplate('switch {node_name} tunnel-vxlan-show vxlan {vxlan_
 
 VLAN_SHOW = CommandTemplate('switch {node_name} vlan-show id {vlan_id} format id,switch,vxlan parsable-delim ":"',
                             ACTION_MAP, ERROR_MAP)
+PORT_STATUS_SHOW = CommandTemplate(
+    'switch {node_name} port-show port {port} hide-connections format switch,port,status, parsable-delim ":"', ACTION_MAP,
+    ERROR_MAP)
