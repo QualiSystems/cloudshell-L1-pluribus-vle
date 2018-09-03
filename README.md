@@ -22,7 +22,7 @@ The driver has been verified with the following devices and software versions:
 - Device_Type - Version/s
 
 ### Installation
-* Extract the driver's package to *Drivers* folder, usually this is *C:\\Program Files (x86)\\QualiSystems\\CloudShell\\Server\\Drivers*
+* Extract the driver's package to *Drivers* folder, usually this is *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers*
 * In the extracted driver's folder run *install_driver.bat*
 ```bash
     install_driver.bat
