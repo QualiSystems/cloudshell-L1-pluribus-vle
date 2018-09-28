@@ -10,7 +10,7 @@ class MappingActions(object):
     PORTS = 'ports'
     BIDIR = 'bidir'
     MONITOR_PORTS = 'monitor_ports'
-    FORBIDDEN_PORT_STATUS_TABLE = ['pn-fabric', 'pn-cluster', 'pn-internal', 'vle', 'vxlan-loopback']
+    FORBIDDEN_PORT_STATUS_TABLE = ['pn-fabric', 'pn-cluster', 'pn-internal', 'vle', 'vxlan-loopback', 'disabled']
 
     """
     Autoload actions
@@ -198,7 +198,7 @@ class MappingActions(object):
                                       remove_prompt=True).execute_command(node_name=node_name, port=port)
         node_key = 'node'
         port_key = 'port'
-        status_key = 'vlan'
+        status_key = 'status'
 
         out_table = ActionsHelper.parse_table_by_keys(out, node_key, port_key, status_key)
         if out_table:
@@ -209,3 +209,4 @@ class MappingActions(object):
                         raise Exception(self.__class__.__name__,
                                         'Port {} is not allowed to use for VLE, it has status {}'.format(
                                             (node_name, port), status))
+
