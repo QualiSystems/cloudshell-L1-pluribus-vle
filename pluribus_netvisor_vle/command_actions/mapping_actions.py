@@ -1,8 +1,6 @@
-import re
-from copy import copy
-
 import pluribus_netvisor_vle.command_templates.mapping as command_template
 from cloudshell.cli.command_template.command_template_executor import CommandTemplateExecutor
+from cloudshell.cli.session.session_exceptions import CommandExecutionException
 from pluribus_netvisor_vle.command_actions.actions_helper import ActionsHelper
 
 
@@ -119,13 +117,14 @@ class MappingActions(object):
     def _validate_port_is_not_a_member(self, node, port):
         vlan_member = self.vlan_id_for_port(node, port)
         if vlan_member and vlan_member != 1:
-            raise Exception(self.__class__.__name__,
-                            'Port {} already a member of vlan_id {}'.format((node, port), vlan_member))
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Port {} already a member of vlan_id {}'.format((node, port), vlan_member))
 
     def _validate_port_is_a_member(self, node, port, vlan_id):
         vlan_member = self.vlan_id_for_port(node, port)
         if not vlan_member or vlan_member != vlan_id:
-            raise Exception(self.__class__.__name__, 'Cannot add port {} to vlan {}'.format((node, port), vlan_id))
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Cannot add port {} to vlan {}'.format((node, port), vlan_id))
 
     def _validate_vxlan_add(self, node_name, vxlan_id, tunnel):
         switch_key = 'switch'
@@ -137,9 +136,10 @@ class MappingActions(object):
         active_tunnels = [record[tunnel_name_key] for record in out_table]
         if tunnel in active_tunnels:
             return
-        raise Exception(self.__class__.__name__,
-                        'Failed to add vxlan {} to tunnel {}, see driver logs for more details'.format(vxlan_id,
-                                                                                                       tunnel))
+        raise CommandExecutionException(self.__class__.__name__,
+                                        'Failed to add vxlan {} to tunnel {}, see driver logs for more details'.format(
+                                            vxlan_id,
+                                            tunnel))
 
     def _validate_vle_creation(self, vle_name):
         vle_name_key = 'vle_name'
@@ -153,8 +153,8 @@ class MappingActions(object):
         out_table = ActionsHelper.parse_table_by_keys(out, vle_name_key, node_1_key, node_1_port_key, node_2_key,
                                                       node_2_port_key, status_key)
         if not out_table or out_table[0].get(vle_name_key) != vle_name:
-            raise Exception(self.__class__.__name__,
-                            'VLE {} creation failed, see logs for more details'.format(vle_name))
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'VLE {} creation failed, see logs for more details'.format(vle_name))
 
     def _validate_vle_deletion(self, vle_name):
         vle_name_key = 'vle_name'
@@ -168,8 +168,8 @@ class MappingActions(object):
         out_table = ActionsHelper.parse_table_by_keys(out, vle_name_key, node_1_key, node_1_port_key, node_2_key,
                                                       node_2_port_key, status_key)
         if out_table:
-            raise Exception(self.__class__.__name__,
-                            'Failed to delete VLE {}, see logs for more details'.format(vle_name))
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Failed to delete VLE {}, see logs for more details'.format(vle_name))
 
     def _validate_vlan_id_deletion(self, node_name, vlan_id):
         out = CommandTemplateExecutor(self._cli_service, command_template.VLAN_SHOW,
@@ -179,7 +179,8 @@ class MappingActions(object):
         vxlan_id_key = 'vxlan'
         out_table = ActionsHelper.parse_table_by_keys(out, vlan_id_key, switch_key, vxlan_id_key)
         if out_table:
-            raise Exception(self.__class__.__name__, 'Failed to delete vlan {} on node {}'.format(vlan_id, node_name))
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Failed to delete vlan {} on node {}'.format(vlan_id, node_name))
 
     def vlan_id_for_port(self, node, port):
         out = CommandTemplateExecutor(self._cli_service, command_template.PORT_VLAN_INFO,
@@ -206,7 +207,6 @@ class MappingActions(object):
             if status_data:
                 for status in status_data.split(','):
                     if status.strip().lower() in MappingActions.FORBIDDEN_PORT_STATUS_TABLE:
-                        raise Exception(self.__class__.__name__,
-                                        'Port {} is not allowed to use for VLE, it has status {}'.format(
-                                            (node_name, port), status))
-
+                        raise CommandExecutionException(self.__class__.__name__,
+                                                        'Port {} is not allowed to use for VLE, it has status {}'.format(
+                                                            (node_name, port), status))
