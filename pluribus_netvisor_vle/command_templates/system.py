@@ -11,5 +11,7 @@ SET_AUTO_NEG_ON = CommandTemplate('port-config-modify port {port_id} autoneg', A
 SET_AUTO_NEG_OFF = CommandTemplate('port-config-modify port {port_id} no-autoneg', ACTION_MAP, ERROR_MAP)
 PHYS_TO_LOGICAL = CommandTemplate('bezel-portmap-show format bezel-intf,port parsable-delim ":"', ACTION_MAP,
                                   ERROR_MAP)
-
 FABRIC_INFO = CommandTemplate('fabric-info parsable-delim ":"', ACTION_MAP, ERROR_MAP)
+TUNNEL_INFO = CommandTemplate(
+    'tunnel-show auto-tunnel static format switch,name,local-ip,remote-ip, parsable-delim ":"', ACTION_MAP, ERROR_MAP)
+VLAN_SHOW = CommandTemplate('vlan-show format switch,id,vxlan,description, parsable-delim ":"', ACTION_MAP, ERROR_MAP)

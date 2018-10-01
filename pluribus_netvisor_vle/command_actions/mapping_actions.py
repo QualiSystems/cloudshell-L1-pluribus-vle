@@ -1,14 +1,14 @@
-import re
-from copy import copy
-
 import pluribus_netvisor_vle.command_templates.mapping as command_template
 from cloudshell.cli.command_template.command_template_executor import CommandTemplateExecutor
+from cloudshell.cli.session.session_exceptions import CommandExecutionException
+from pluribus_netvisor_vle.command_actions.actions_helper import ActionsHelper
 
 
 class MappingActions(object):
     PORTS = 'ports'
     BIDIR = 'bidir'
     MONITOR_PORTS = 'monitor_ports'
+    FORBIDDEN_PORT_STATUS_TABLE = ['pn-fabric', 'pn-cluster', 'pn-internal', 'vle', 'vxlan-loopback', 'disabled']
 
     """
     Autoload actions
@@ -34,173 +34,179 @@ class MappingActions(object):
     def cli_service(self, cli_service):
         self._cli_service = cli_service
 
-    @staticmethod
-    def _parse_complex_ports(port_string):
-        ports = []
-        for port in port_string.split(','):
-            if '-' in port:
-                start, end = port.split('-')
-                ports.extend(map(str, range(int(start), int(end) + 1)))
-            elif port:
-                ports.append(port)
-        return ports
+    def map_bidi_multi_node(self, src_node, dst_node, src_port, dst_port, src_tunnel, dst_tunnel, vlan_id, vle_name):
+        # self._validate_port_is_not_a_member(src_node, src_port)
+        # self._validate_port_is_not_a_member(dst_node, dst_port)
+        self._validate_port(src_node, src_port)
+        self._validate_port(dst_node, dst_port)
+        self._create_vlan(src_node, src_port, vlan_id)
+        out = CommandTemplateExecutor(self._cli_service, command_template.ADD_VXLAN_TO_TUNNEL).execute_command(
+            node_name=src_node, tunnel_name=src_tunnel, vxlan_id=vlan_id)
+        self._validate_vxlan_add(src_node, vlan_id, src_tunnel)
 
-    def _build_associations_table(self):
-        associations_table = {}
-        output = CommandTemplateExecutor(self._cli_service, command_template.ASSOCIATIONS).execute_command()
-        for master_port, slave_port, name, bidir, monitor_ports in re.findall(r'^(\d+):(\d+):([\w-]+):(\w+):([\d,-]*)$',
-                                                                              output, flags=re.MULTILINE):
-            associations_table[name] = {self.PORTS: [master_port, slave_port],
-                                        self.BIDIR: bidir.lower() == 'true',
-                                        self.MONITOR_PORTS: self._parse_complex_ports(monitor_ports)}
-        return associations_table
+        self._create_vlan(dst_node, dst_port, vlan_id)
+        out += CommandTemplateExecutor(self._cli_service, command_template.ADD_VXLAN_TO_TUNNEL).execute_command(
+            node_name=dst_node, tunnel_name=dst_tunnel, vxlan_id=vlan_id)
+        self._validate_vxlan_add(dst_node, vlan_id, dst_tunnel)
 
-    @property
-    def _associations_table(self):
-        if not self.__associations_table:
-            self.__associations_table = self._build_associations_table()
-        return self.__associations_table
+        out += CommandTemplateExecutor(self._cli_service, command_template.VLE_CREATE).execute_command(
+            vle_name=vle_name, node_1=src_node, node_1_port=src_port, node_2=dst_node, node_2_port=dst_port)
+        self._validate_vle_creation(vle_name)
 
-    def _build_phys_to_logical_table(self):
-        logical_to_phys_dict = {}
-        output = CommandTemplateExecutor(self._cli_service, command_template.PHYS_TO_LOGICAL).execute_command()
-        for phys_id, logical_id in re.findall(r'^([\d.]+):(\d+)$', output, flags=re.MULTILINE):
-            logical_to_phys_dict[phys_id] = logical_id
-        return logical_to_phys_dict
+    def map_bidi_single_node(self, node, src_port, dst_port, vlan_id, vle_name):
+        # self._validate_port_is_not_a_member(node, src_port)
+        # self._validate_port_is_not_a_member(node, dst_port)
+        self._validate_port(node, src_port)
+        self._validate_port(node, dst_port)
+        self._create_vlan(node, src_port, vlan_id)
+        self._add_to_vlan(node, dst_port, vlan_id)
 
-    @property
-    def _phys_to_logical_table(self):
-        if not self.__phys_to_logical_table:
-            self.__phys_to_logical_table = self._build_phys_to_logical_table()
-        return self.__phys_to_logical_table
+        out = CommandTemplateExecutor(self._cli_service, command_template.VLE_CREATE).execute_command(
+            vle_name=vle_name, node_1=node, node_1_port=src_port, node_2=node, node_2_port=dst_port)
+        self._validate_vle_creation(vle_name)
 
-    def _get_logical(self, phys_name):
-        logical_id = self._phys_to_logical_table.get(phys_name)
-        if logical_id:
-            return logical_id
-        else:
-            raise Exception(self.__class__.__name__, 'Cannot convert physical port name to logical')
+    def delete_single_node_vle(self, node, vle_name, vlan_id):
+        out = CommandTemplateExecutor(self._cli_service, command_template.DELETE_VLE).execute_command(vle_name=vle_name)
+        self._validate_vle_deletion(vle_name)
+        out += CommandTemplateExecutor(self._cli_service, command_template.DELETE_VLAN).execute_command(node=node,
+                                                                                                        vlan_id=vlan_id)
+        self._validate_vlan_id_deletion(node, vlan_id)
 
-    def _find_association(self, port):
-        for name, attributes in self._associations_table.iteritems():
-            if port in attributes.get(self.PORTS):
-                return name
+    def delete_multi_node_vle(self, src_node, dst_node, vle_name, vlan_id):
+        out = CommandTemplateExecutor(self._cli_service, command_template.DELETE_VLE).execute_command(vle_name=vle_name)
+        self._validate_vle_deletion(vle_name)
+        out += CommandTemplateExecutor(self._cli_service, command_template.DELETE_VLAN).execute_command(node=src_node,
+                                                                                                        vlan_id=vlan_id)
+        self._validate_vlan_id_deletion(src_node, vlan_id)
+        out += CommandTemplateExecutor(self._cli_service, command_template.DELETE_VLAN).execute_command(node=dst_node,
+                                                                                                        vlan_id=vlan_id)
+        self._validate_vlan_id_deletion(dst_node, vlan_id)
 
-    # def _find_unidir_association(self, ports):
-    #     for name, attributes in self._associations_table.iteritems():
-    #         if ports == attributes.get(self.PORTS) and not attributes.get(self.BIDIR):
-    #             return name
-    # def _find_monitor_association(self, port):
-    #     for name, attributes in self._associations_table.iteritems():
+    def connection_table(self):
+        out = CommandTemplateExecutor(self._cli_service, command_template.VLE_SHOW,
+                                      remove_prompt=True).execute_command()
 
-    def map_uni(self, master_port, slave_ports):
-        logical_master_id = self._get_logical(master_port)
-        self._validate_port(logical_master_id)
-        command_executor = CommandTemplateExecutor(self._cli_service, command_template.MAP_UNI)
-        exception_messages = []
-        for slave_port in slave_ports:
-            try:
-                logical_slave_id = self._get_logical(slave_port)
-                self._validate_port(logical_slave_id)
-                command_executor.execute_command(master_ports=logical_master_id, slave_ports=logical_slave_id,
-                                                 name='{0}-uni-{1}'.format(logical_master_id, logical_slave_id))
-            except Exception as e:
-                if len(e.args) > 1:
-                    exception_messages.append(e.args[1])
-                elif len(e.args) == 1:
-                    exception_messages.append(e.args[0])
-        if exception_messages:
-            raise Exception(self.__class__.__name__, ', '.join(exception_messages))
+        vle_name_key = 'vle_name'
+        node_1_key = 'node_1'
+        node_2_key = 'node_2'
+        node_1_port_key = 'node_1_port'
+        node_2_port_key = 'node_2_port'
+        connection_table = {}
+        out_table = ActionsHelper.parse_table_by_keys(out, vle_name_key, node_1_key, node_2_key, node_1_port_key,
+                                                      node_2_port_key)
+        for record in out_table:
+            src_record = (record[node_1_key], record[node_1_port_key])
+            dst_record = (record[node_2_key], record[node_2_port_key])
+            vle_name = record[vle_name_key]
+            connection_table[src_record] = (dst_record, vle_name)
+            connection_table[dst_record] = (src_record, vle_name)
+        return connection_table
 
-    def map_bidi(self, master_port, slave_port):
-        logical_master_id = self._get_logical(master_port)
-        self._validate_port(logical_master_id)
-        logical_slave_id = self._get_logical(slave_port)
-        self._validate_port(logical_slave_id)
-        associations_output = CommandTemplateExecutor(self._cli_service, command_template.MAP_BIDI).execute_command(
-            master_ports=logical_master_id, slave_ports=logical_slave_id,
-            name='{0}-bidi-{1}'.format(logical_master_id, logical_slave_id))
-        return associations_output
+    def _create_vlan(self, node, port, vlan_id):
+        # self._validate_port_is_not_a_member(node, port)
+        out = CommandTemplateExecutor(self._cli_service, command_template.CREATE_VLAN, ).execute_command(
+            node_name=node, vlan_id=vlan_id, vxlan_id=vlan_id, port=port)
+        self._validate_port_is_a_member(node, port, vlan_id)
 
-    def map_clear(self, ports):
-        exception_messages = []
-        for port in ports:
-            try:
-                port_id = self._get_logical(port)
-                association = self._find_association(port_id)
-                self._remove_association(association)
-            except Exception as e:
-                if len(e.args) > 1:
-                    exception_messages.append(e.args[1])
-                elif len(e.args) == 1:
-                    exception_messages.append(e.args[0])
-        if exception_messages:
-            raise Exception(self.__class__.__name__, ', '.join(exception_messages))
+    def _add_to_vlan(self, node, port, vlan_id):
+        # self._validate_port_is_not_a_member(node, port)
+        out = CommandTemplateExecutor(self._cli_service, command_template.ADD_TO_VLAN).execute_command(
+            node_name=node, vlan_id=vlan_id, port=port)
+        self._validate_port_is_a_member(node, port, vlan_id)
 
-    def _remove_association(self, association_name):
-        if association_name:
-            command_executor = CommandTemplateExecutor(self._cli_service, command_template.MAP_CLEAR)
-            command_executor.execute_command(name=association_name)
-            del self._associations_table[association_name]
+    def _validate_port_is_not_a_member(self, node, port):
+        vlan_member = self.vlan_id_for_port(node, port)
+        if vlan_member and vlan_member != 1:
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Port {} already a member of vlan_id {}'.format((node, port), vlan_member))
 
-    def _modify_monitor_ports(self, association_name, monitor_ports):
-        association_attributes = self._associations_table.get(association_name)
-        if association_attributes.get(self.MONITOR_PORTS) != monitor_ports:
-            command_executor = CommandTemplateExecutor(self._cli_service, command_template.MODIFY_MONITOR_PORTS)
-            command_executor.execute_command(name=association_name, ports=','.join(monitor_ports))
-            association_attributes[self.MONITOR_PORTS] = monitor_ports
+    def _validate_port_is_a_member(self, node, port, vlan_id):
+        vlan_member = self.vlan_id_for_port(node, port)
+        if not vlan_member or vlan_member != vlan_id:
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Cannot add port {} to vlan {}'.format((node, port), vlan_id))
 
-    def map_clear_to(self, master_port, slave_ports):
-        master_port_logical_id = self._get_logical(master_port)
-        slave_ports_logical_ids = map(self._get_logical, slave_ports)
-        exception_messages = []
-        try:
-            association_name = self._find_association(master_port_logical_id)
-            if association_name:
-                association_attributes = self._associations_table.get(association_name)
-                association_ports = association_attributes.get(self.PORTS)
-                # Second port of association
-                association_second_port = association_ports[1 - association_ports.index(master_port_logical_id)]
-                if association_second_port in slave_ports_logical_ids:
-                    self._remove_association(association_name)
-                else:
-                    monitor_ports = copy(association_attributes.get(self.MONITOR_PORTS))
-                    for port in slave_ports_logical_ids:
-                        if port in monitor_ports:
-                            monitor_ports.remove(port)
-                    self._modify_monitor_ports(association_name, monitor_ports)
-
-        except Exception as e:
-            if len(e.args) > 1:
-                exception_messages.append(e.args[1])
-            elif len(e.args) == 1:
-                exception_messages.append(e.args[0])
-        if exception_messages:
-            raise Exception(self.__class__.__name__, ', '.join(exception_messages))
-
-    def map_tap(self, master_port, monitor_ports):
-        master_port_logical = self._get_logical(master_port)
-        self._validate_port(master_port_logical)
-        monitor_ports_logical = map(self._get_logical, monitor_ports)
-        association_name = self._find_association(master_port_logical)
-        if not association_name:
-            raise Exception(self.__class__.__name__,
-                            "Cannot find association with port {}".format(master_port_logical))
-        association_attributes = self._associations_table.get(association_name)
-        association_monitor_ports = copy(association_attributes.get(self.MONITOR_PORTS))
-        for port in monitor_ports_logical:
-            self._validate_port(port)
-            if port in association_monitor_ports:
-                raise Exception(self.__class__.__name__,
-                                'Port {0} has already exist in monitor ports for association {1}'.format(port,
-                                                                                                         association_name))
-            else:
-                association_monitor_ports.append(port)
-        self._modify_monitor_ports(association_name, association_monitor_ports)
-
-    def _validate_port(self, logical_port_id):
-        output = CommandTemplateExecutor(self._cli_service, command_template.IS_ENABLED).execute_command(
-            port=logical_port_id)
-        if '{}:on'.format(logical_port_id) in output.lower():
+    def _validate_vxlan_add(self, node_name, vxlan_id, tunnel):
+        switch_key = 'switch'
+        tunnel_name_key = 'tunnel_name'
+        vxlan_id_key = 'vxlan_id'
+        out = CommandTemplateExecutor(self._cli_service, command_template.VXLAN_SHOW,
+                                      remove_prompt=True).execute_command(node_name=node_name, vxlan_id=vxlan_id)
+        out_table = ActionsHelper.parse_table_by_keys(out, switch_key, tunnel_name_key, vxlan_id_key)
+        active_tunnels = [record[tunnel_name_key] for record in out_table]
+        if tunnel in active_tunnels:
             return
-        raise Exception('Port {} is disabled'.format(logical_port_id))
+        raise CommandExecutionException(self.__class__.__name__,
+                                        'Failed to add vxlan {} to tunnel {}, see driver logs for more details'.format(
+                                            vxlan_id,
+                                            tunnel))
+
+    def _validate_vle_creation(self, vle_name):
+        vle_name_key = 'vle_name'
+        node_1_key = 'node_1'
+        node_2_key = 'node_2'
+        node_1_port_key = 'node_1_port'
+        node_2_port_key = 'node_2_port'
+        status_key = 'status'
+        out = CommandTemplateExecutor(self._cli_service, command_template.VLE_SHOW_FOR_NAME,
+                                      remove_prompt=True).execute_command(vle_name=vle_name)
+        out_table = ActionsHelper.parse_table_by_keys(out, vle_name_key, node_1_key, node_1_port_key, node_2_key,
+                                                      node_2_port_key, status_key)
+        if not out_table or out_table[0].get(vle_name_key) != vle_name:
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'VLE {} creation failed, see logs for more details'.format(vle_name))
+
+    def _validate_vle_deletion(self, vle_name):
+        vle_name_key = 'vle_name'
+        node_1_key = 'node_1'
+        node_2_key = 'node_2'
+        node_1_port_key = 'node_1_port'
+        node_2_port_key = 'node_2_port'
+        status_key = 'status'
+        out = CommandTemplateExecutor(self._cli_service, command_template.VLE_SHOW_FOR_NAME,
+                                      remove_prompt=True).execute_command(vle_name=vle_name)
+        out_table = ActionsHelper.parse_table_by_keys(out, vle_name_key, node_1_key, node_1_port_key, node_2_key,
+                                                      node_2_port_key, status_key)
+        if out_table:
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Failed to delete VLE {}, see logs for more details'.format(vle_name))
+
+    def _validate_vlan_id_deletion(self, node_name, vlan_id):
+        out = CommandTemplateExecutor(self._cli_service, command_template.VLAN_SHOW,
+                                      remove_prompt=True).execute_command(node_name=node_name, vlan_id=vlan_id)
+        vlan_id_key = 'vlan_id'
+        switch_key = 'switch_key'
+        vxlan_id_key = 'vxlan'
+        out_table = ActionsHelper.parse_table_by_keys(out, vlan_id_key, switch_key, vxlan_id_key)
+        if out_table:
+            raise CommandExecutionException(self.__class__.__name__,
+                                            'Failed to delete vlan {} on node {}'.format(vlan_id, node_name))
+
+    def vlan_id_for_port(self, node, port):
+        out = CommandTemplateExecutor(self._cli_service, command_template.PORT_VLAN_INFO,
+                                      remove_prompt=True).execute_command(node=node, port=port)
+        node_key = 'node'
+        port_key = 'port'
+        vlan_id_key = 'vlan'
+
+        out_table = ActionsHelper.parse_table_by_keys(out, node_key, port_key, vlan_id_key)
+        vlan_id = out_table[0].get(vlan_id_key)
+        if vlan_id and vlan_id.lower() != 'none':
+            return int(vlan_id)
+
+    def _validate_port(self, node_name, port):
+        out = CommandTemplateExecutor(self._cli_service, command_template.PORT_STATUS_SHOW,
+                                      remove_prompt=True).execute_command(node_name=node_name, port=port)
+        node_key = 'node'
+        port_key = 'port'
+        status_key = 'status'
+
+        out_table = ActionsHelper.parse_table_by_keys(out, node_key, port_key, status_key)
+        if out_table:
+            status_data = out_table[0].get(status_key)
+            if status_data:
+                for status in status_data.split(','):
+                    if status.strip().lower() in MappingActions.FORBIDDEN_PORT_STATUS_TABLE:
+                        raise CommandExecutionException(self.__class__.__name__,
+                                                        'Port {} is not allowed to use for VLE, it has status {}'.format(
+                                                            (node_name, port), status))

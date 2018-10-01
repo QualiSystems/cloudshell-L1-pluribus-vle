@@ -18,16 +18,21 @@ class DriverCommands(DriverCommandsInterface):
     Driver commands implementation
     """
 
-    def __init__(self, logger):
+    def __init__(self, logger, runtime_config):
         """
-        :param logger:
         :type logger: logging.Logger
+        :type runtime_config: cloudshell.layer_one.core.helper.runtime_configuration.RuntimeConfiguration
         """
         self._logger = logger
+        self._vlan_min = runtime_config.read_key('DRIVER.VLAN_MIN', 100)
+        self._vlan_max = runtime_config.read_key('DRIVER.VLAN_MAX', 4000)
+        self._vle_prefix = runtime_config.read_key('DRIVER.VLE_PREFIX', 'QSVLE-')
         self._cli_handler = VWCliHandler(self._logger)
 
         self._fabric_name = None
-        self._fabric_nodes = []
+        self._fabric_id = None
+        self._fabric_nodes = None
+        self._tunnels_table = {}
 
         self.__mapping_actions = None
         self.__system_actions = None
@@ -65,12 +70,15 @@ class DriverCommands(DriverCommandsInterface):
         self._cli_handler.define_session_attributes(address, username, password)
         with self._cli_handler.default_mode_service() as cli_service:
             system_actions = SystemActions(cli_service, self._logger)
-            self._fabric_name = system_actions.get_fabric_name()
+            fabric_info = system_actions.get_fabric_info()
+            self._fabric_name = fabric_info.get('name')
+            self._fabric_id = fabric_info.get('id')
             if not self._fabric_name:
                 raise Exception(self.__class__.__name__, "Fabric is not defined")
             # self._fabric_nodes = system_actions.get_fabric_nodes(self._fabric_name)
             self._logger.info('Fabric name: ' + self._fabric_name)
             # self._logger.info(autoload_actions.board_table())
+            self._tunnels_table = system_actions.tunnels_table()
             self.__mapping_actions = None
             self.__system_actions = None
 
@@ -127,10 +135,25 @@ class DriverCommands(DriverCommandsInterface):
         """
         self._logger.info('MapBidi, SrcPort: {0}, DstPort: {1}'.format(src_port, dst_port))
         with self._cli_handler.default_mode_service() as session:
-            with ActionsManager(self._mapping_actions, session) as mapping_actions:
-                src_logical_port = self._convert_port_address(src_port)
-                dst_logical_port = self._convert_port_address(dst_port)
-                mapping_actions.map_bidi(src_logical_port, dst_logical_port)
+            system_actions = SystemActions(session, self._logger)
+            mapping_actions = MappingActions(session, self._logger)
+            src_node, src_port = self._convert_port_address(src_port)
+            dst_node, dst_port = self._convert_port_address(dst_port)
+            vlan_id = system_actions.get_available_vlan_id(self._vlan_min, self._vlan_max)
+            vle_name = self._vle_prefix + str(vlan_id)
+
+            if src_node == dst_node:
+                mapping_actions.map_bidi_single_node(src_node, src_port, dst_port, vlan_id, vle_name)
+            else:
+                src_tunnel = self._tunnels_table.get((src_node, dst_node))
+                dst_tunnel = self._tunnels_table.get((dst_node, src_node))
+                if src_tunnel and dst_tunnel:
+                    mapping_actions.map_bidi_multi_node(src_node, dst_node, src_port, dst_port, src_tunnel, dst_tunnel,
+                                                        vlan_id, vle_name)
+                else:
+                    raise Exception(self.__class__.__name__, 'Cannot find the appropriate tunnel')
+
+            # mapping_actions.map_bidi(src_logical_port, dst_logical_port)
 
     def map_uni(self, src_port, dst_ports):
         """
@@ -147,11 +170,7 @@ class DriverCommands(DriverCommandsInterface):
                 for dst_port in dst_ports:
                     session.send_command('map {0} also-to {1}'.format(convert_port(src_port), convert_port(dst_port)))
         """
-        self._logger.info('MapUni, SrcPort: {0}, DstPorts: {1}'.format(src_port, ','.join(dst_ports)))
-        with self._cli_handler.default_mode_service() as session:
-            with ActionsManager(self._mapping_actions, session) as mapping_actions:
-                mapping_actions.map_uni(self._convert_port_address(src_port),
-                                        [self._convert_port_address(port) for port in dst_ports])
+        raise Exception(self.__class__.__name__, "This driver does not support MapUni command")
 
     def get_resource_description(self, address):
         """
@@ -191,11 +210,14 @@ class DriverCommands(DriverCommandsInterface):
             autoload_actions = AutoloadActions(session, self._logger)
             nodes_table = autoload_actions.fabric_nodes_table(self._fabric_name)
             ports_table = {node: autoload_actions.ports_table(node) for node in nodes_table}
-            print(nodes_table)
+            associations_table = autoload_actions.associations_table()
+            # print(nodes_table)
             # ports_table = autoload_actions.ports_table()
             # association_table = autoload_actions.associations_table()
-            # autoload_helper = Autoload(address, boart_table, ports_table, association_table, self._logger)
-            # return ResourceDescriptionResponseInfo(autoload_helper.build_structure())
+            autoload_helper = Autoload(address, self._fabric_name, self._fabric_id, nodes_table, ports_table,
+                                       associations_table,
+                                       self._logger)
+            return ResourceDescriptionResponseInfo(autoload_helper.build_structure())
 
     def map_clear(self, ports):
         """
@@ -218,8 +240,37 @@ class DriverCommands(DriverCommandsInterface):
         """
         self._logger.info('MapClear, Ports: {}'.format(','.join(ports)))
         with self._cli_handler.default_mode_service() as session:
-            with ActionsManager(self._mapping_actions, session) as mapping_actions:
-                mapping_actions.map_clear([self._convert_port_address(port) for port in ports])
+            exception_messages = []
+            # system_actions = SystemActions(session, self._logger)
+            mapping_actions = MappingActions(session, self._logger)
+            for port in ports:
+                src_node, src_port = self._convert_port_address(port)
+                connection_table = mapping_actions.connection_table()
+                dst_record = connection_table.get((src_node, src_port))
+                if not dst_record:
+                    continue
+                (dst_node, dst_port), vle_name = dst_record
+                try:
+                    vlan_id = mapping_actions.vlan_id_for_port(src_node, src_port)
+                    self._validate_vlan_id(vlan_id)
+                    if src_node == dst_node:
+                        mapping_actions.delete_single_node_vle(src_node, vle_name, vlan_id)
+                    else:
+                        mapping_actions.delete_multi_node_vle(src_node, dst_node, vle_name, vlan_id)
+                except Exception as e:
+                    if len(e.args) > 1:
+                        exception_messages.append(e.args[1])
+                    elif len(e.args) == 1:
+                        exception_messages.append(e.args[0])
+            if exception_messages:
+                raise Exception(self.__class__.__name__, ', '.join(exception_messages))
+
+    def _validate_vlan_id(self, vlan_id):
+        if vlan_id and self._vlan_min <= int(vlan_id) <= self._vlan_max:
+            return
+        else:
+            raise Exception(self.__class__.__name__,
+                            'Vlan id {} is not correct or is not from allocated range'.format(vlan_id))
 
     def map_clear_to(self, src_port, dst_ports):
         """
@@ -239,10 +290,9 @@ class DriverCommands(DriverCommandsInterface):
                     session.send_command('map clear-to {0} {1}'.format(_src_port, _dst_port))
         """
         self._logger.info('MapClearTo, SrcPort: {0}, DstPorts: {1}'.format(src_port, ','.join(dst_ports)))
-        with self._cli_handler.default_mode_service() as session:
-            with ActionsManager(self._mapping_actions, session) as mapping_actions:
-                mapping_actions.map_clear_to(self._convert_port_address(src_port),
-                                             [self._convert_port_address(port) for port in dst_ports])
+        ports = [src_port]
+        ports.extend(dst_ports)
+        self.map_clear(ports)
 
     def get_attribute_value(self, cs_address, attribute_name):
         """
@@ -263,10 +313,7 @@ class DriverCommands(DriverCommandsInterface):
         """
         if attribute_name == 'Serial Number':
             if len(cs_address.split('/')) == 1:
-                with self._cli_handler.default_mode_service() as session:
-                    autoload_actions = AutoloadActions(session, self._logger)
-                    board_table = autoload_actions.board_table()
-                    return AttributeValueResponseInfo(board_table.get('chassis-serial'))
+                return AttributeValueResponseInfo(self._fabric_id)
             else:
                 return AttributeValueResponseInfo('NA')
         else:
@@ -291,20 +338,16 @@ class DriverCommands(DriverCommandsInterface):
                 session.send_command(command)
                 return AttributeValueResponseInfo(attribute_value)
         """
-        if attribute_name == 'Auto Negotiation':
-            with self._cli_handler.default_mode_service() as session:
-                with ActionsManager(self._system_actions, session) as system_actions:
-                    system_actions.set_auto_negotiation(self._convert_port_address(cs_address), attribute_value)
-        else:
-            raise LayerOneDriverException(self.__class__.__name__,
-                                          'SetAttributeValue for address {} is not supported'.format(cs_address))
+        # if attribute_name == 'Auto Negotiation':
+        #     with self._cli_handler.default_mode_service() as session:
+        #         with ActionsManager(self._system_actions, session) as system_actions:
+        #             system_actions.set_auto_negotiation(self._convert_port_address(cs_address), attribute_value)
+        # else:
+        raise LayerOneDriverException(self.__class__.__name__,
+                                      'SetAttributeValue for address {} is not supported'.format(cs_address))
 
     def map_tap(self, src_port, dst_ports):
-        self._logger.info('MapTap, SrcPort: {0}, DstPorts: {1}'.format(src_port, ','.join(dst_ports)))
-        with self._cli_handler.default_mode_service() as session:
-            with ActionsManager(self._mapping_actions, session) as mapping_actions:
-                mapping_actions.map_tap(self._convert_port_address(src_port),
-                                        [self._convert_port_address(port) for port in dst_ports])
+        raise Exception(self.__class__.__name__, 'MapTap is not supported')
 
     def set_speed_manual(self, src_port, dst_port, speed, duplex):
         """
@@ -315,7 +358,7 @@ class DriverCommands(DriverCommandsInterface):
         :param duplex:
         :return:
         """
-        pass
+        raise NotImplementedError
 
     @staticmethod
     def _convert_port_address(port):
@@ -324,4 +367,4 @@ class DriverCommands(DriverCommandsInterface):
         :type port: str
         :return:
         """
-        return port.split('/')[-1]
+        return port.split('/')[1:3]

@@ -6,11 +6,12 @@ The Pluribus Netvisor VLE L1 Driver provides CloudShell Resource Manager with th
 End users will be able to create routes, configure port settings, and read values from the switch using the CloudShell Portal, Resource Manager client, or the CloudShell API.
 
 The Pluribus Netvisor VLE L1 Driver package includes:
+
 | File name | Description |
-| ------ | ------ |
-| PLURIBUS_NETVISOR_VLE.exe | Driver used by CloudShell Server |
-| pluribus_netvisor_vle_runtime_configuration.json | JSON file enabling additional configuration interface for the driver
-| Pluribus Netvisor VLEResourceConfiguration.xml | An XML file holding all attribute and capabilities of the L1 switches of the same vendor |
+| :------ | ------ |
+| cloudshell-L1-pluribus_netvisor_vle\install_driver.bat | The driver installation script |
+| cloudshell-L1-pluribus_netvisor_vle\pluribus_netvisor_vle_runtime_config.json | JSON file enabling additional configuration interface for the driver |
+| cloudshell-L1-pluribus_netvisor_vle\datamodel\Pluribus Netvisor VLE_ResourceConfiguration.xml | An XML file holding all attribute and capabilities of the L1 switches of the same vendor |
 
 ### Requirements
 The driver is compatible with the following CloudShell versions:
@@ -21,14 +22,16 @@ The driver has been verified with the following devices and software versions:
 - Device_Type - Version/s
 
 ### Installation
-
-Follow the instructions in the link below for installation:
-http://help.quali.com/Online%20Help/7.0.0.0/Portal/Content/Admn/Cnct-Ctrl-L1-Swch.htm
-
-In step 7 at the above guide, you will need to copy only one exe file, and instead of the runtimeConfig.xml file please copy the pluribus_netvisor_vle_runtime_configuration.json file.
+* Extract the driver's package to *Drivers* folder, usually this is *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers*
+* In the extracted driver's folder run *install_driver.bat*
+```bash
+    install_driver.bat
+```
+* [Follow this guide](http://help.quali.com/Online%20Help/8.3/Portal/Content/Admn/Cnct-Ctrl-L1-Swch.htm) to continue installation.
 
 ### Supported Functionality
 *delete the irrelevant ones*
+
 | Feature | Description |
 | ------ | ------ |
 | AutoLoad | Creates the sub-resources of the L1 switch |
@@ -39,6 +42,7 @@ In step 7 at the above guide, you will need to copy only one exe file, and inste
 
 ### Configuration
 *add any relevant information about the different keys in the pluribus_netvisor_vle_runtime_configuration.json file or remove this section*
+
 | Feature | Description |
 | ------ | ------ |
 | common_variable.connection_port | TCP Port connection, default is 1234 |

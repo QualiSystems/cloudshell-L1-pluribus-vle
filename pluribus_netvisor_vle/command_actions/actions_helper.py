@@ -19,7 +19,22 @@ class ActionsHelper(object):
     def parse_table(out):
         table = {}
         for line in out.splitlines():
-            match = re.match(r'\s*(.+):(.+)\s*', line)
-            if match:
-                table[match.group(1).strip()] = match.group(2).strip()
+            key_value = line.split(':', 1)
+            if len(key_value) == 2:
+                table[key_value[0].strip()] = key_value[1].strip()
         return table
+
+    @staticmethod
+    def parse_table_by_keys(data, *keys):
+        """
+        :type data: str
+        """
+        result_table = []
+        for line in data.splitlines():
+            values = line.strip().split(':')
+            if len(values) == len(keys):
+                result_dict = {}
+                for key in keys:
+                    result_dict[key] = values[keys.index(key)]
+                result_table.append(result_dict)
+        return result_table
