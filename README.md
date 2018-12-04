@@ -30,7 +30,7 @@ L1 switch shells allow CloudShell to manage networking connectivity between phys
 For additional information, see the [L1 Switches](http://help.quali.com/Online%20Help/9.0/Portal/Content/Admn/Cnct-Ctrl-L1-Swch.htm?Highlight=L1%20switch) online help topic.
 
 ### **Pluribus Netvisor Vle L1 Shell**
-**Pluribus Netvisor Vle L1 Shell provides you with the capability to communicate with network topology managed by the Pluribus Netvisor Vle.
+Pluribus Netvisor Vle L1 Shell provides you with the capability to communicate with network topology managed by the Pluribus Netvisor Vle.
 
 The shell allows CloudShell users to interact with the device, for example, create and modify route mappings, get device information, and more.
 
