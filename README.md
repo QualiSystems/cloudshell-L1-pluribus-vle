@@ -58,13 +58,13 @@ The L1 switch families and models are listed in the following table:
 
 |Family|Model|Description|
 |:---|:---|:---|
-|L1 Switch|Pluribus Netvisor Vle Chassis|L1 Switch Chassis|
-|L1 Switch Blade|Generic L1 Module|Generic L1 Module|
+|L1 Switch|Pluribus Netvisor VLE Fabric|Netvisor VLE fabric|
+|L1 Switch Blade|Generic L1 Module|Netvisor VLE Node|
 |L1 Switch Port|Generic L1 Port|Generic L1 Port|
 
 #### **Pluribus Netvisor Vle Attributes**
 
-The Pluribus Netvisor Vle Chassis attribute names and types are listed in the following table:
+The Pluribus Netvisor VLE Fabric attribute names and types are listed in the following table:
 
 |Attribute|Type|Description|
 |:---|:---|:---|
