@@ -110,10 +110,10 @@ The shell comprises:
 
 |File name|Description|
 |:---|:---|
-|cloudshell-L1-pluribus_netvisor_vle-1.0.0.zip|Pluribus Netvisor VLE L1 Shell package|
+|cloudshell-L1-pluribus-vle-x.x.x.zip|Pluribus Netvisor VLE L1 Shell package|
 |install_driver.bat|Pluribus Netvisor VLE L1 Shell installation script|
-|pluribus_netvisor_vle_runtime_config.yml|Pluribus Netvisor VLE L1 Shell configuration file|
-|pluribus_netvisor_vle_ResourceConfiguration.xml|XML file containing the resource structure, attributes and capabilities of the L1 switches of the same vendor|
+|pluribus_vle_runtime_config.yml|Pluribus Netvisor VLE L1 Shell configuration file|
+|pluribus_vle_ResourceConfiguration.xml|XML file containing the resource structure, attributes and capabilities of the L1 switches of the same vendor|
 
 # Importing and Configuring the Shell
 This section describes how to import the **Pluribus Netvisor VLE L1 Shell** and configure and modify the shell’s devices.
@@ -126,11 +126,11 @@ This section describes how to import the **Pluribus Netvisor VLE L1 Shell** and 
   2. Extract the *pluribus netvisor vle shell package zip* package to the following location on the Quali Server machine: 
   *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers*
   
-  3. Run the *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus_netvisor_vle\install_driver.bat* file.
+  3. Run the *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus-vle\install_driver.bat* file.
   
   4. Import the new data model.
       1. In **Resource Manager Client>Admin**, right-click **Resource Families** and select **Import**.
-      2. Select the *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus_netvisor_vle\datamodel\pluribus_netvisor_vle_ResourceConfiguration.xml* file.
+      2. Select the *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus-vle\datamodel\pluribus_vle_ResourceConfiguration.xml* file.
       3. Click **Open**.
 	
   5. Create an L1 resource.
@@ -155,7 +155,7 @@ This section describes how to import the **Pluribus Netvisor VLE L1 Shell** and 
 ### Offline installation of a shell
 Shell installation installs the required dependencies from the shell's zip package.
 
-The *install_driver.bat* script creates a virtual environment on the Quali Server machine under *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus_netvisor_vle* and installs the required dependencies in this virtual environment from the extracted L1 shell folder (under *~cloudshell-L1-pluribus_netvisor_vle\packages*).
+The *install_driver.bat* script creates a virtual environment on the Quali Server machine under *C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus-vle* and installs the required dependencies in this virtual environment from the extracted L1 shell folder (under *~cloudshell-L1-pluribus-vle\packages*).
 
 # Updating Python Dependencies for Shells
 This section explains how to update your Python dependencies folder. This is required when you upgrade a shell that uses new/updated dependencies. It applies to both online and offline dependencies. 
@@ -177,7 +177,7 @@ L1 shells do not have separate Python dependencies files. All dependencies are i
 
 5. Copy the upgraded shell's datamodel file from:
 
-	*C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus_netvisor_vle\datamodel\pluribus_netvisor_vle_ResourceConfiguration.xml*
+	*C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers\cloudshell-L1-pluribus-vle\datamodel\pluribus_vle_ResourceConfiguration.xml*
 	
 	to:
 	
@@ -198,4 +198,4 @@ To connect with Quali users and experts from around the world, ask questions and
 
 ### What's New
 
-For release updates, see the shell's [GitHub releases page](https://github.com/QualiSystems/cloudshell-L1-pluribus_netvisor_vle/releases).
+For release updates, see the shell's [GitHub releases page](https://github.com/QualiSystems/cloudshell-L1-pluribus-vle/releases).

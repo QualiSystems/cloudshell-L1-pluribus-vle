@@ -1,7 +1,7 @@
-import pluribus_netvisor_vle.command_templates.mapping as command_template
+import pluribus_vle.command_templates.mapping as command_template
 from cloudshell.cli.command_template.command_template_executor import CommandTemplateExecutor
 from cloudshell.cli.session.session_exceptions import CommandExecutionException
-from pluribus_netvisor_vle.command_actions.actions_helper import ActionsHelper
+from pluribus_vle.command_actions.actions_helper import ActionsHelper
 
 
 class MappingActions(object):

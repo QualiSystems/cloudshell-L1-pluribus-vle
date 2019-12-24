@@ -164,7 +164,7 @@
                     <AttributeValues/>
                     <ParentModels/>
                     <Drivers>
-                        <DriverName>PLURIBUS NETVISOR VLE</DriverName>
+                        <DriverName>PLURIBUS VLE</DriverName>
                     </Drivers>
                 </ResourceModel>
             </Models>
@@ -253,7 +253,7 @@
         </ResourceFamily>
     </ResourceFamilies>
     <DriverDescriptors>
-        <DriverDescriptor Name="PLURIBUS NETVISOR VLE" DriverType="L1SwitchTclDriver"
-                          CustomParams="pluribus_netvisor_vle.exe"/>
+        <DriverDescriptor Name="PLURIBUS VLE" DriverType="L1SwitchTclDriver"
+                          CustomParams="pluribus-vle.exe"/>
     </DriverDescriptors>
 </ResourceManagementExportImport>
