@@ -5,12 +5,12 @@ from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsIn
 from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
 from cloudshell.layer_one.core.response.response_info import GetStateIdResponseInfo, ResourceDescriptionResponseInfo, \
     AttributeValueResponseInfo
-from pluribus_netvisor_vle.autoload.autoload import Autoload
-from pluribus_netvisor_vle.cli.vw_cli_handler import VWCliHandler
-from pluribus_netvisor_vle.command_actions.actions_helper import ActionsManager
-from pluribus_netvisor_vle.command_actions.autoload_actions import AutoloadActions
-from pluribus_netvisor_vle.command_actions.mapping_actions import MappingActions
-from pluribus_netvisor_vle.command_actions.system_actions import SystemActions
+from pluribus_vle.autoload.autoload import Autoload
+from pluribus_vle.cli.vw_cli_handler import VWCliHandler
+from pluribus_vle.command_actions.actions_helper import ActionsManager
+from pluribus_vle.command_actions.autoload_actions import AutoloadActions
+from pluribus_vle.command_actions.mapping_actions import MappingActions
+from pluribus_vle.command_actions.system_actions import SystemActions
 
 
 class DriverCommands(DriverCommandsInterface):

@@ -1,6 +1,6 @@
-from pluribus_netvisor_vle.autoload.vle_blade import VLEBlade
-from pluribus_netvisor_vle.autoload.vle_fabric import VLEFabric
-from pluribus_netvisor_vle.autoload.vle_port import VLEPort
+from pluribus_vle.autoload.vle_blade import VLEBlade
+from pluribus_vle.autoload.vle_fabric import VLEFabric
+from pluribus_vle.autoload.vle_port import VLEPort
 
 
 class Autoload(object):
