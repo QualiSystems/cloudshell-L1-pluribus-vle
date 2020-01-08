@@ -89,11 +89,14 @@ class SystemActions(object):
         #                   remote_ip_key: values[3]}
         #         out_list.append(result)
         out_list = ActionsHelper.parse_table_by_keys(out, switch_key, tunnel_name_key, local_ip_key, remote_ip_key)
-        switch_ip_table = {data[local_ip_key]: data[switch_key] for data in out_list}
+        switch_ip_table = {data.get(local_ip_key): data.get(switch_key) for data in out_list}
         tunnels_table = {}
         for data_table in out_list:
-            tunnel_nodes = (data_table[switch_key], switch_ip_table[data_table[remote_ip_key]])
-            tunnels_table[tunnel_nodes] = data_table[tunnel_name_key]
+            local_switch_name = data_table.get(switch_key)
+            remote_switch_name = switch_ip_table.get(data_table.get(remote_ip_key))
+            tunnel_name = data_table.get(tunnel_name_key)
+            if local_switch_name and remote_switch_name and tunnel_name:
+                tunnels_table[local_switch_name, remote_switch_name] = tunnel_name
         return tunnels_table
 
     def get_available_vlan_id(self, min_vlan, max_vlan):
