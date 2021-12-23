@@ -27,6 +27,7 @@ class DriverCommands(DriverCommandsInterface):
         self._vlan_min = runtime_config.read_key('DRIVER.VLAN_MIN', 100)
         self._vlan_max = runtime_config.read_key('DRIVER.VLAN_MAX', 4000)
         self._vle_prefix = runtime_config.read_key('DRIVER.VLE_PREFIX', 'QSVLE-')
+        self._map_on_set_vlan = runtime_config.read_key("DRIVER.MAP_ON_SET_VLAN", False)
         self._cli_handler = VWCliHandler(self._logger)
 
         self._fabric_name = None
@@ -36,6 +37,11 @@ class DriverCommands(DriverCommandsInterface):
 
         self.__mapping_actions = None
         self.__system_actions = None
+
+        # Used to store map requests
+        self._map_requests = {}
+        # Used to store vlanId's attached to port
+        self._vlan_table = {}
 
     @property
     def _mapping_actions(self):
@@ -118,7 +124,7 @@ class DriverCommands(DriverCommandsInterface):
             with ActionsManager(self._system_actions, session) as system_actions:
                 system_actions.set_state_id(state_id)
 
-    def map_bidi(self, src_port, dst_port):
+    def map_bidi(self, src_port, dst_port, vlan_id=None):
         """
         Create a bidirectional connection between source and destination ports
         :param src_port: src port address, '192.168.42.240/1/21'
@@ -133,13 +139,20 @@ class DriverCommands(DriverCommandsInterface):
                 session.send_command('map bidir {0} {1}'.format(convert_port(src_port), convert_port(dst_port)))
 
         """
+        if self._map_on_set_vlan is True:
+            if vlan_id is None:
+                self._map_requests[src_port]=dst_port
+                self._map_requests[dst_port]=src_port
+                return
+
         self._logger.info('MapBidi, SrcPort: {0}, DstPort: {1}'.format(src_port, dst_port))
         with self._cli_handler.default_mode_service() as session:
             system_actions = SystemActions(session, self._logger)
             mapping_actions = MappingActions(session, self._logger)
             src_node, src_port = self._convert_port_address(src_port)
             dst_node, dst_port = self._convert_port_address(dst_port)
-            vlan_id = system_actions.get_available_vlan_id(self._vlan_min, self._vlan_max)
+            if vlan_id is None:
+                vlan_id = system_actions.get_available_vlan_id(self._vlan_min, self._vlan_max)
             vle_name = self._vle_prefix + str(vlan_id)
 
             if src_node == dst_node:
@@ -338,11 +351,20 @@ class DriverCommands(DriverCommandsInterface):
                 session.send_command(command)
                 return AttributeValueResponseInfo(attribute_value)
         """
-        # if attribute_name == 'Auto Negotiation':
-        #     with self._cli_handler.default_mode_service() as session:
-        #         with ActionsManager(self._system_actions, session) as system_actions:
-        #             system_actions.set_auto_negotiation(self._convert_port_address(cs_address), attribute_value)
-        # else:
+
+        if attribute_name == 'L1 VLAN ID' and self._map_on_set_vlan is True:
+            vlan_id = attribute_value
+            src_port = self._vlan_table.get(vlan_id)
+            if src_port is None:
+                self._vlan_table[vlan_id]=src_port
+                return
+
+            dst_port = cs_address
+            req_dst_port = self._map_requests.get(src_port)
+            req_src_port = self._map_requests.get(dst_port)
+            if req_src_port == src_port and req_dst_port == dst_port:
+                return self.map_bidi(src_port, dst_port, vlan_id)
+
         raise LayerOneDriverException(self.__class__.__name__,
                                       'SetAttributeValue for address {} is not supported'.format(cs_address))
 
