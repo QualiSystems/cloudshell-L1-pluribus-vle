@@ -363,6 +363,9 @@ class DriverCommands(DriverCommandsInterface):
             req_dst_port = self._map_requests.get(src_port)
             req_src_port = self._map_requests.get(dst_port)
             if req_src_port == src_port and req_dst_port == dst_port:
+                self._map_requests.pop(src_port, None)
+                self._map_requests.pop(dst_port, None)
+                self._vlan_table.pop(vlan_id, None)
                 return self.map_bidi(src_port, dst_port, vlan_id)
 
         raise LayerOneDriverException(self.__class__.__name__,
