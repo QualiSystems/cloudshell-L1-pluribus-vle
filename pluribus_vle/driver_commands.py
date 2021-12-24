@@ -356,13 +356,13 @@ class DriverCommands(DriverCommandsInterface):
             vlan_id = attribute_value
             src_port = self._vlan_table.get(vlan_id)
             if src_port is None:
-                self._vlan_table[vlan_id]=src_port
+                self._vlan_table[vlan_id] = cs_address
                 return
 
             dst_port = cs_address
             req_dst_port = self._map_requests.get(src_port)
             req_src_port = self._map_requests.get(dst_port)
-            if req_src_port == src_port and req_dst_port == dst_port:
+            if all([req_src_port, req_dst_port]) and {req_src_port, req_dst_port} == {src_port, dst_port}:
                 self._map_requests.pop(src_port, None)
                 self._map_requests.pop(dst_port, None)
                 self._vlan_table.pop(vlan_id, None)
