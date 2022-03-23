@@ -35,8 +35,6 @@ class MappingActions(object):
         self._cli_service = cli_service
 
     def map_bidi_multi_node(self, src_node, dst_node, src_port, dst_port, src_tunnel, dst_tunnel, vlan_id, vle_name):
-        # self._validate_port_is_not_a_member(src_node, src_port)
-        # self._validate_port_is_not_a_member(dst_node, dst_port)
         self._validate_port(src_node, src_port)
         self._validate_port(dst_node, dst_port)
         self._create_vlan(src_node, src_port, vlan_id)
@@ -54,8 +52,6 @@ class MappingActions(object):
         self._validate_vle_creation(vle_name)
 
     def map_bidi_single_node(self, node, src_port, dst_port, vlan_id, vle_name):
-        # self._validate_port_is_not_a_member(node, src_port)
-        # self._validate_port_is_not_a_member(node, dst_port)
         self._validate_port(node, src_port)
         self._validate_port(node, dst_port)
         self._create_vlan(node, src_port, vlan_id)
@@ -103,26 +99,28 @@ class MappingActions(object):
         return connection_table
 
     def _create_vlan(self, node, port, vlan_id):
-        # self._validate_port_is_not_a_member(node, port)
+        self._remove_port_from_vlans(node, port)
+        self._validate_port_is_not_a_member(node, port)
         out = CommandTemplateExecutor(self._cli_service, command_template.CREATE_VLAN, ).execute_command(
             node_name=node, vlan_id=vlan_id, vxlan_id=vlan_id, port=port)
         self._validate_port_is_a_member(node, port, vlan_id)
 
     def _add_to_vlan(self, node, port, vlan_id):
-        # self._validate_port_is_not_a_member(node, port)
+        self._remove_port_from_vlans(node, port)
+        self._validate_port_is_not_a_member(node, port)
         out = CommandTemplateExecutor(self._cli_service, command_template.ADD_TO_VLAN).execute_command(
             node_name=node, vlan_id=vlan_id, port=port)
         self._validate_port_is_a_member(node, port, vlan_id)
 
     def _validate_port_is_not_a_member(self, node, port):
-        vlan_member = self.vlan_id_for_port(node, port)
-        if vlan_member and vlan_member != 1:
+        vlan_members = self.vlan_ids_for_port(node, port)
+        if vlan_members and len(set(vlan_members) - {1}) > 0:
             raise CommandExecutionException(self.__class__.__name__,
-                                            'Port {} already a member of vlan_id {}'.format((node, port), vlan_member))
+                                            'Port {} already a member of vlan_id {}'.format((node, port), vlan_members))
 
     def _validate_port_is_a_member(self, node, port, vlan_id):
-        vlan_member = self.vlan_id_for_port(node, port)
-        if not vlan_member or vlan_member != vlan_id:
+        vlan_members = self.vlan_ids_for_port(node, port)
+        if not vlan_members or int(vlan_id) not in vlan_members:
             raise CommandExecutionException(self.__class__.__name__,
                                             'Cannot add port {} to vlan {}'.format((node, port), vlan_id))
 
@@ -182,7 +180,7 @@ class MappingActions(object):
             raise CommandExecutionException(self.__class__.__name__,
                                             'Failed to delete vlan {} on node {}'.format(vlan_id, node_name))
 
-    def vlan_id_for_port(self, node, port):
+    def vlan_ids_for_port(self, node, port):
         out = CommandTemplateExecutor(self._cli_service, command_template.PORT_VLAN_INFO,
                                       remove_prompt=True).execute_command(node=node, port=port)
         node_key = 'node'
@@ -190,9 +188,9 @@ class MappingActions(object):
         vlan_id_key = 'vlan'
 
         out_table = ActionsHelper.parse_table_by_keys(out, node_key, port_key, vlan_id_key)
-        vlan_id = out_table[0].get(vlan_id_key)
-        if vlan_id and vlan_id.lower() != 'none':
-            return int(vlan_id)
+        value = out_table[0].get(vlan_id_key)
+        if value is not None and value.lower() != 'none':
+            return map(int, value.split(","))
 
     def _validate_port(self, node_name, port):
         out = CommandTemplateExecutor(self._cli_service, command_template.PORT_STATUS_SHOW,
@@ -210,3 +208,16 @@ class MappingActions(object):
                         raise CommandExecutionException(self.__class__.__name__,
                                                         'Port {} is not allowed to use for VLE, it has status {}'.format(
                                                             (node_name, port), status))
+
+    def _remove_from_vlan(self, node_name, vlan_id, port):
+        out = CommandTemplateExecutor(self._cli_service, command_template.REMOVE_FROM_VLAN,
+                                      remove_prompt=True).execute_command(node_name=node_name, vlan_id=vlan_id, port=port)
+        if "removed" not in out.lower():
+            raise CommandExecutionException("Cannot remove port {} from VlanId {} on node {}".format(port, vlan_id, node_name))
+
+    def _remove_port_from_vlans(self, node, port):
+        vlan_members = self.vlan_ids_for_port(node, port)
+        if vlan_members is not None:
+            for vlan_id in vlan_members:
+                self._remove_from_vlan(node, vlan_id, port)
+

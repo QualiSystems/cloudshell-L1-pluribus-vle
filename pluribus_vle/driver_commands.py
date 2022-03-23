@@ -153,6 +153,8 @@ class DriverCommands(DriverCommandsInterface):
             dst_node, dst_port = self._convert_port_address(dst_port)
             if vlan_id is None:
                 vlan_id = system_actions.get_available_vlan_id(self._vlan_min, self._vlan_max)
+            else:
+                vlan_id = system_actions.get_available_vlan_id(int(vlan_id), int(vlan_id))
             vle_name = self._vle_prefix + str(vlan_id)
 
             if src_node == dst_node:
@@ -264,8 +266,8 @@ class DriverCommands(DriverCommandsInterface):
                     continue
                 (dst_node, dst_port), vle_name = dst_record
                 try:
-                    vlan_id = mapping_actions.vlan_id_for_port(src_node, src_port)
-                    self._validate_vlan_id(vlan_id)
+                    vlan_ids = mapping_actions.vlan_ids_for_port(src_node, src_port)
+                    vlan_id = self._valid_vlan_id(vlan_ids)
                     if src_node == dst_node:
                         mapping_actions.delete_single_node_vle(src_node, vle_name, vlan_id)
                     else:
@@ -278,12 +280,13 @@ class DriverCommands(DriverCommandsInterface):
             if exception_messages:
                 raise Exception(self.__class__.__name__, ', '.join(exception_messages))
 
-    def _validate_vlan_id(self, vlan_id):
-        if vlan_id and self._vlan_min <= int(vlan_id) <= self._vlan_max:
-            return
-        else:
-            raise Exception(self.__class__.__name__,
-                            'Vlan id {} is not correct or is not from allocated range'.format(vlan_id))
+    def _valid_vlan_id(self, vlan_ids):
+        if vlan_ids:
+            for vlan_id in vlan_ids:
+                if self._vlan_min <= int(vlan_id) <= self._vlan_max:
+                    return vlan_id
+        raise Exception(self.__class__.__name__,
+                        'Vlan ids {} is not correct or is not from allocated range'.format(vlan_ids))
 
     def map_clear_to(self, src_port, dst_ports):
         """
@@ -351,17 +354,20 @@ class DriverCommands(DriverCommandsInterface):
                 session.send_command(command)
                 return AttributeValueResponseInfo(attribute_value)
         """
+        self._logger.debug("SetAttributeValue, Addr: {0}, Name: {1}, Value: {2}".format(cs_address, attribute_name, attribute_value))
 
         if attribute_name == 'L1 VLAN ID' and self._map_on_set_vlan is True:
             vlan_id = attribute_value
             src_port = self._vlan_table.get(vlan_id)
             if src_port is None:
+                self._logger.debug("Add vlan record {0}-{1}".format(vlan_id, cs_address))
                 self._vlan_table[vlan_id] = cs_address
                 return
 
             dst_port = cs_address
             req_dst_port = self._map_requests.get(src_port)
             req_src_port = self._map_requests.get(dst_port)
+            self._logger.debug("Call mapping VlanID: {0}, SrcPort: {1}, DstPort: {2}".format(vlan_id, src_port, dst_port))
             if all([req_src_port, req_dst_port]) and {req_src_port, req_dst_port} == {src_port, dst_port}:
                 self._map_requests.pop(src_port, None)
                 self._map_requests.pop(dst_port, None)

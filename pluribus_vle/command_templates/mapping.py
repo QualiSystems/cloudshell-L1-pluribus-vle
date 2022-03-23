@@ -12,6 +12,7 @@ CREATE_VLAN = CommandTemplate(
     'switch {node_name} vlan-create id {vlan_id} scope local vxlan-mode transparent vxlan {vxlan_id} ports {port}',
     ACTION_MAP, ERROR_MAP)
 ADD_TO_VLAN = CommandTemplate('switch {node_name} vlan-port-add vlan-id {vlan_id} ports {port}', ACTION_MAP, ERROR_MAP)
+REMOVE_FROM_VLAN = CommandTemplate('switch {node_name} vlan-port-remove vlan-id {vlan_id} ports {port}', ACTION_MAP, ERROR_MAP)
 ADD_VXLAN_TO_TUNNEL = CommandTemplate('switch {node_name} tunnel-vxlan-add name {tunnel_name} vxlan {vxlan_id}',
                                       ACTION_MAP, ERROR_MAP)
 VLE_CREATE = CommandTemplate(
