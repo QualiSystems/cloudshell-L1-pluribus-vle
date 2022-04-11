@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import requests
 
 from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsInterface
 from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
@@ -28,6 +29,7 @@ class DriverCommands(DriverCommandsInterface):
         self._vlan_max = runtime_config.read_key('DRIVER.VLAN_MAX', 4000)
         self._vle_prefix = runtime_config.read_key('DRIVER.VLE_PREFIX', 'QSVLE-')
         self._map_on_set_vlan = runtime_config.read_key("DRIVER.MAP_ON_SET_VLAN", False)
+        self._rest_api_enbled = runtime_config.read_key("DRIVER.REST_API", False)
         self._cli_handler = VWCliHandler(self._logger)
 
         self._fabric_name = None
@@ -42,6 +44,12 @@ class DriverCommands(DriverCommandsInterface):
         self._map_requests = {}
         # Used to store vlanId's attached to port
         self._vlan_table = {}
+
+        if self._rest_api_enbled:
+            self._session = requests.Session()
+            self._session.verify = False  # don't validate certificate as it's self-signed
+            self._address = None
+            self._baseurl = None
 
     @property
     def _mapping_actions(self):
@@ -73,6 +81,19 @@ class DriverCommands(DriverCommandsInterface):
                 device_info = session.send_command('show version')
                 self._logger.info(device_info)
         """
+        if self._rest_api_enbled:
+            self._logger.info("@login to {0}".format(address))
+            self._session.auth = (username, password)
+            self._address = address
+            self._baseurl = "https://{}".format(self._address)
+            request_uri = "/vRest/fabrics/info"
+            r = self._session.get(self._baseurl+request_uri)
+            if r.status_code != requests.codes.ok:
+                raise r.raise_for_status()
+            resp_json = r.json()
+            # parse json
+            return
+
         self._cli_handler.define_session_attributes(address, username, password)
         with self._cli_handler.default_mode_service() as cli_service:
             system_actions = SystemActions(cli_service, self._logger)

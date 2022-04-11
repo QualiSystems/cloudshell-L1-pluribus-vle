@@ -9,4 +9,5 @@ DEBUG_ENABLED: FALSE  # TRUE/FALSE
 DRIVER:
   VLAN_MIN: 100
   VLAN_MAX: 4000
-  MAP_ON_SET_VLAN: FALSE # If True, actual map_bidi() command is called only when vlanId set for both ports using set_attribute_value()
+  MAP_ON_SET_VLAN: FALSE  # If True, actual map_bidi() command is called only when vlanId set for both ports using set_attribute_value()
+  REST_API: TRUE  # TRUE - use rest-api communication protocol, FALSE - CLI protocol
