@@ -4,7 +4,8 @@ from pluribus_vle.autoload.vle_port import VLEPort
 
 
 class Autoload(object):
-    def __init__(self, resource_address, fabric_name, fabric_id, nodes_table, ports_table, associations_table, logger):
+    def __init__(self, resource_address, fabric_name, fabric_id, nodes_table,
+                 ports_table, associations_table, logger):
         self._logger = logger
         self._fabric_name = fabric_name
         self._fabric_id = fabric_id
@@ -23,8 +24,8 @@ class Autoload(object):
         nodes_dict = {}
         for nodename, node_data in self._nodes_table.iteritems():
             node = VLEBlade(nodename)
-            node.set_model_name(node_data.get('model'))
-            node.set_serial_number(node_data.get('chassis-serial'))
+            node.set_model_name(node_data.get("model"))
+            node.set_serial_number(node_data.get("chassis-serial"))
             node.set_parent_resource(fabric)
             nodes_dict[nodename] = node
         return nodes_dict
@@ -37,8 +38,7 @@ class Autoload(object):
         return ports_dict
 
     def _build_ports_for_node(self, fabric_node, ports_data):
-        """
-        Ports for fabric node
+        """ Ports for fabric node.
         :type fabric_node: pluribus_netvisor_vle.autoload.vle_blade.VLEBlade
         :type ports_data: dict
         :rtype: dict
@@ -46,15 +46,12 @@ class Autoload(object):
         ports_dict = {}
 
         for port_id, port_record in ports_data.iteritems():
-            speed = port_record.get('speed')
-            autoneg = port_record.get('autoneg')
-            # phys_id = port_record.get('phys_id')
+            speed = port_record.get("speed")
+            autoneg = port_record.get("autoneg")
 
             port = VLEPort(port_id)
-            port.set_model_name('{} Port'.format(fabric_node.get_model_name()))
-            port.set_auto_negotiation(autoneg == 'on')
-            # port.set_protocol_type_by_speed(speed)
-            # port.set_protocol('80')
+            port.set_model_name("{} Port".format(fabric_node.get_model_name()))
+            port.set_auto_negotiation(autoneg == "on")
             port.set_port_speed(speed)
             port.set_parent_resource(fabric_node)
             ports_dict[(fabric_node.resource_id, port_id)] = port

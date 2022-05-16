@@ -6,9 +6,7 @@ from pluribus_vle.command_actions.actions_helper import ActionsHelper
 
 
 class SystemActions(object):
-    """
-    Autoload actions
-    """
+    """ System actions """
 
     def __init__(self, cli_service, logger):
         """

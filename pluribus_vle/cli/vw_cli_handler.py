@@ -16,11 +16,11 @@ class VWCliHandler(object):
         self._logger = logger
         self._cli = CLI(session_pool=SessionPoolManager(max_pool_size=1))
         self.modes = CommandModeHelper.create_command_mode()
-        self._defined_session_types = {'SSH': VWSSHSession, 'TELNET': TelnetSession}
+        self._defined_session_types = {"SSH": VWSSHSession, "TELNET": TelnetSession}
 
         self._session_types = RuntimeConfiguration().read_key(
-            'CLI.TYPE', ['SSH']) or self._defined_session_types.keys()
-        self._ports = RuntimeConfiguration().read_key('CLI.PORTS', '22')
+            "API.CLI.TYPE", ["SSH"]) or self._defined_session_types.keys()
+        self._ports = RuntimeConfiguration().read_key("API.CLI.PORTS", "22")
 
         self._host = None
         self._username = None
@@ -31,38 +31,32 @@ class VWCliHandler(object):
         for session_type in self._session_types:
             session_class = self._defined_session_types.get(session_type)
             if not session_class:
-                raise LayerOneDriverException(self.__class__.__name__,
-                                              'Session type {} is not defined'.format(session_type))
+                raise LayerOneDriverException(
+                    "Session type {} is not defined".format(session_type)
+                )
             port = self._ports.get(session_type)
-            sessions.append(session_class(self._host, self._username, self._password, port))
+            sessions.append(session_class(self._host,
+                                          self._username,
+                                          self._password,
+                                          port)
+                            )
         return sessions
 
     def define_session_attributes(self, address, username, password):
-        """
-        Define session attributes
-        :param address: 
-        :type address: str
-        :param username: 
-        :param password: 
-        :return: 
-        """
-
-        address_list = address.split(':')
+        """ Define session attributes. """
+        address_list = address.split(":")
         if len(address_list) > 1:
-            raise LayerOneDriverException(self.__class__.__name__, 'Incorrect resource address')
+            raise LayerOneDriverException("Incorrect resource address")
         self._host = address
         self._username = username
         self._password = password
 
     def get_cli_service(self, command_mode):
-        """
-        Create new cli service or get it from pool
-        :param command_mode: 
-        :return: 
-        """
+        """ Create new cli service or get it from pool. """
         if not self._host or not self._username or not self._password:
-            raise LayerOneDriverException(self.__class__.__name__,
-                                          "Cli Attributes is not defined, call Login command first")
+            raise LayerOneDriverException(
+                "Cli Attributes is not defined, call Login command first"
+            )
         return self._cli.get_session(self._new_sessions(), command_mode, self._logger)
 
     @property
@@ -70,9 +64,5 @@ class VWCliHandler(object):
         return self.modes[DefaultCommandMode]
 
     def default_mode_service(self):
-        """
-        Default mode session
-        :return:
-        :rtype: cloudshell.cli.cli_service.CliService
-        """
+        """ Default mode session. """
         return self.get_cli_service(self._default_mode)
