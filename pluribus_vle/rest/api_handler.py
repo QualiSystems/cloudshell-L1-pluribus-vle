@@ -392,36 +392,3 @@ class PluribusRESTAPI(BaseAPIClient):
             json={"autoneg": autoneg},
             http_error_map=self.ERROR_MAP
             )
-
-
-if __name__ == "__main__":
-    api = PluribusRESTAPI(
-        address="10.37.20.117",
-        username="network-admin",
-        password="test123",
-        scheme="HTTP",
-    )
-
-    # res = api._do_get(path="switch-setup")
-    res = api.get_fabric_info()
-    for i in res:
-        print i
-
-    # data = api.delete_ports_from_vlan(vlan_id=1414, hostid='184557030', ports=3)
-    # print data
-
-    res = api.get_switch_setup(fabric=True)
-
-    print res
-
-
-    # res = api._do_post(path="vlans", json={"id": 1414,
-    #                                        "scope": "local"})
-    # print res
-
-#     def connect(self):
-#         error_map = {
-#             401: VSphereApiInvalidCredentials,
-#             503: VSphereApiServiceUnavailable,
-#         }
-#         self._do_post(path="session", http_error_map=error_map)
