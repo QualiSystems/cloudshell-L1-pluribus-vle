@@ -71,6 +71,15 @@
                 <LookupValue NumericValue="3" StringValue="Full"/>
             </LookupValues>
         </AttributeInfo>
+        <AttributeInfo Name="L1 VLAN ID" Type="String" DefaultValue="1" IsReadOnly="false" IsCommand="true">
+            <Tags>
+                <TagName Name="Configuration"/>
+                <TagName Name="Setting"/>
+                <TagName Name="Available For Abstract Resources"/>
+                <TagName Name="Link Configurations"/>
+                <TagName Name="Variable Capability"/>
+            </Tags>
+        </AttributeInfo>
         <AttributeInfo Name="Password" Type="Password" DefaultValue="" IsReadOnly="false" IsCommand="false">
             <Tags>
                 <TagName Name="Configuration"/>
@@ -237,6 +246,9 @@
                             <AllowedValues/>
                         </AttachedAttribute>
                         <AttachedAttribute Name="Port Speed" IsOverridable="true" IsLocal="false">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="L1 VLAN ID" IsOverridable="true" IsLocal="false">
                             <AllowedValues/>
                         </AttachedAttribute>
                     </AttachedAttributes>

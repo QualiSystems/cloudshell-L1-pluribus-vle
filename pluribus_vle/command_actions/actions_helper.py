@@ -1,6 +1,3 @@
-import re
-
-
 class ActionsManager(object):
     def __init__(self, actions_instance, cli_service):
         self._actions_instance = actions_instance
