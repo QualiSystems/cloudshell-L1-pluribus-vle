@@ -45,6 +45,14 @@ class RestSystemActions(object):
             is_autoneg = False
         self._api.set_autoneg(port_id=logical_port_id, is_autoneg=is_autoneg)
 
+    def set_port_state(self, port, port_state):
+        """ Enable/Disable port. """
+        # logical_port_id = self._get_logical(phys_port)
+        port_state = port_state.lower()
+        if port_state not in ["enable", "disable"]:
+            port_state = "enable"
+        self._api.set_port_state(port_id=port, port_state=port_state)
+
     def get_fabric_info(self):
         """ Get fabric information."""
         data = self._api.get_fabric_info()

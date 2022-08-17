@@ -67,6 +67,17 @@ class SystemActions(object):
             out = CommandTemplateExecutor(self._cli_service, command_template.SET_AUTO_NEG_OFF).execute_command(
                 port_id=logical_port_id)
 
+    def set_port_state(self, port, port_state):
+        port_state = port_state.lower()
+        if port_state not in ["enable", "disable"]:
+            port_state = "enable"
+
+        CommandTemplateExecutor(
+            self._cli_service,
+            command_template.SET_PORT_STATE
+            ).execute_command(port_id=port,
+                              port_state=port_state)
+
     def get_fabric_info(self):
         out = CommandTemplateExecutor(self._cli_service, command_template.FABRIC_INFO,
                                       remove_prompt=True).execute_command()

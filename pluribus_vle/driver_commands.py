@@ -9,7 +9,6 @@ from cloudshell.layer_one.core.response.response_info import GetStateIdResponseI
     AttributeValueResponseInfo
 from pluribus_vle.autoload.autoload import Autoload
 from pluribus_vle.cli.vw_cli_handler import VWCliHandler
-# from pluribus_vle.command_actions.actions_helper import ActionsManager
 from pluribus_vle.command_actions.autoload_actions import AutoloadActions
 from pluribus_vle.command_actions.mapping_actions import MappingActions
 from pluribus_vle.command_actions.system_actions import SystemActions
@@ -207,6 +206,9 @@ class DriverCommands(DriverCommandsInterface):
                                                                int(vlan_id))
             vle_name = self._vle_prefix + str(vlan_id)
 
+            system_actions.set_port_state(src_port, "enable")
+            system_actions.set_port_state(dst_port, "enable")
+
             if src_node == dst_node:
                 mapping_actions.map_bidi_single_node(src_node, src_port, dst_port,
                                                      vlan_id, vle_name)
@@ -235,6 +237,9 @@ class DriverCommands(DriverCommandsInterface):
                     vlan_id = system_actions.get_available_vlan_id(int(vlan_id),
                                                                    int(vlan_id))
                 vle_name = self._vle_prefix + str(vlan_id)
+
+                system_actions.set_port_state(src_port, "enable")
+                system_actions.set_port_state(dst_port, "enable")
 
                 if src_node == dst_node:
                     mapping_actions.map_bidi_single_node(src_node, src_port, dst_port,
@@ -354,6 +359,7 @@ class DriverCommands(DriverCommandsInterface):
 
         # REST Implementation
         if self._rest_api_enabled and self._rest_api:
+            system_actions = RestSystemActions(api=self._rest_api, logger=self._logger)
             mapping_actions = RestMappingActions(
                 api=self._rest_api,
                 switch_mapping=self._switch_mapping,
@@ -374,6 +380,8 @@ class DriverCommands(DriverCommandsInterface):
                     else:
                         mapping_actions.delete_multi_node_vle(src_node, dst_node,
                                                               vle_name, vlan_id)
+                    system_actions.set_port_state(src_port, "disable")
+                    system_actions.set_port_state(dst_port, "disable")
                 except Exception as e:
                     if len(e.args) > 1:
                         exception_messages.append(e.args[1])
@@ -385,6 +393,7 @@ class DriverCommands(DriverCommandsInterface):
         # CLI Implementation
         else:
             with self._cli_handler.default_mode_service() as session:
+                system_actions = SystemActions(session, self._logger)
                 mapping_actions = MappingActions(session, self._logger)
                 for port in ports:
                     src_node, src_port = self._convert_port_address(port)
@@ -402,6 +411,8 @@ class DriverCommands(DriverCommandsInterface):
                         else:
                             mapping_actions.delete_multi_node_vle(src_node, dst_node,
                                                                   vle_name, vlan_id)
+                        system_actions.set_port_state(src_port, "disable")
+                        system_actions.set_port_state(dst_port, "disable")
                     except Exception as e:
                         if len(e.args) > 1:
                             exception_messages.append(e.args[1])

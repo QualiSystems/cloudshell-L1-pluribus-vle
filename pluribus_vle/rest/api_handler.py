@@ -392,3 +392,12 @@ class PluribusRESTAPI(BaseAPIClient):
             json={"autoneg": autoneg},
             http_error_map=self.ERROR_MAP
             )
+
+    @Decorators.get_result_msg
+    def set_port_state(self, port_id, port_state="enable"):
+
+        return self._do_put(
+            path="port-configs/{port_id}".format(port_id=port_id),
+            json={"enable": port_state},
+            http_error_map=self.ERROR_MAP
+            )
