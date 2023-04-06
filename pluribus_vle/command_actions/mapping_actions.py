@@ -3,18 +3,11 @@ from cloudshell.cli.command_template.command_template_executor import \
     CommandTemplateExecutor
 from cloudshell.cli.session.session_exceptions import CommandExecutionException
 from pluribus_vle.command_actions.actions_helper import ActionsHelper
+from pluribus_vle.constants import FORBIDDEN_PORT_STATUS_TABLE
 
 
 class MappingActions(object):
-    PORTS = "ports"
-    BIDIR = "bidir"
-    MONITOR_PORTS = "monitor_ports"
-    FORBIDDEN_PORT_STATUS_TABLE = ["pn-fabric", "pn-cluster", "pn-internal", "vle",
-                                   "vxlan-loopback", "disabled"]
-
-    """
-    Autoload actions
-    """
+    """Autoload actions."""
 
     def __init__(self, cli_service, logger):
         """
@@ -287,7 +280,7 @@ class MappingActions(object):
             status_data = out_table[0].get(status_key)
             if status_data:
                 for status in status_data.split(","):
-                    if status.strip().lower() in MappingActions.FORBIDDEN_PORT_STATUS_TABLE:
+                    if status.strip().lower() in FORBIDDEN_PORT_STATUS_TABLE:
                         raise CommandExecutionException(
                             "Port {} is not allowed to use for VLE,"
                             "it has status {}".format((node_name, port), status))

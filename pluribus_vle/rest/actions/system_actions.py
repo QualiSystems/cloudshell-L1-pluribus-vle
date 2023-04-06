@@ -47,7 +47,6 @@ class RestSystemActions(object):
 
     def set_port_state(self, port, port_state):
         """ Enable/Disable port. """
-        # logical_port_id = self._get_logical(phys_port)
         port_state = port_state.lower()
         if port_state not in ["enable", "disable"]:
             port_state = "enable"

@@ -3,7 +3,7 @@ from collections import OrderedDict
 from cloudshell.cli.command_template.command_template import CommandTemplate
 
 ACTION_MAP = OrderedDict()
-ERROR_MAP = OrderedDict([(r'[Ee]rror:', 'Command error')])
+ERROR_MAP = OrderedDict([(r"[Ee]rror:", "Command error")])
 
 SWITCH_INFO = CommandTemplate('switch "{switch_name}" switch-info-show format model,chassis-serial parsable-delim ":"', ACTION_MAP, ERROR_MAP)
 SWITCH_SETUP = CommandTemplate('switch-setup-show format switch-name', ACTION_MAP, ERROR_MAP)
@@ -14,5 +14,5 @@ ASSOCIATIONS = CommandTemplate('port-association-show format master-ports,slave-
                                ACTION_MAP, ERROR_MAP)
 FABRIC_NODES_SHOW = CommandTemplate(
     'fabric-node-show fab-name "{fabric_name}" format fab-name,name,in-band-ip parsable-delim ":"', ACTION_MAP, ERROR_MAP)
-VLE_SHOW = CommandTemplate('vle-show format name,node-1,node-2,node-1-port,node-2-port, parsable-delim ":"', ACTION_MAP, ERROR_MAP)
+VLE_SHOW = CommandTemplate('vle-show format name,node-1,node-2,node-1-port,node-2-port parsable-delim ":"', ACTION_MAP, ERROR_MAP)
 

@@ -16,7 +16,7 @@ class ActionsHelper(object):
     def parse_table(out):
         table = {}
         for line in out.splitlines():
-            key_value = line.split(':', 1)
+            key_value = line.split(":", 1)
             if len(key_value) == 2:
                 table[key_value[0].strip()] = key_value[1].strip()
         return table
@@ -28,7 +28,7 @@ class ActionsHelper(object):
         """
         result_table = []
         for line in data.splitlines():
-            values = line.strip().split(':')
+            values = line.strip().split(":")
             if len(values) == len(keys):
                 result_dict = {}
                 for key in keys:
