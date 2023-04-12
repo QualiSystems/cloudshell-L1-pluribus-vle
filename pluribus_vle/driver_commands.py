@@ -245,8 +245,16 @@ class DriverCommands(DriverCommandsInterface):
                                                                int(vlan_id))
             vle_name = self._vle_prefix + str(vlan_id)
 
-            system_actions.set_port_state(src_port, "enable")
-            system_actions.set_port_state(dst_port, "enable")
+            system_actions.set_port_state(
+                src_port,
+                self._switch_mapping.get(src_node, "fabric"),
+                "enable"
+            )
+            system_actions.set_port_state(
+                dst_port,
+                self._switch_mapping.get(dst_node, "fabric"),
+                "enable"
+            )
 
             if src_node == dst_node:
                 mapping_actions.map_bidi_single_node(src_node, src_port, dst_port,
@@ -277,8 +285,8 @@ class DriverCommands(DriverCommandsInterface):
                                                                    int(vlan_id))
                 vle_name = self._vle_prefix + str(vlan_id)
 
-                system_actions.set_port_state(src_port, "enable")
-                system_actions.set_port_state(dst_port, "enable")
+                system_actions.set_port_state(src_port, src_node, "enable")
+                system_actions.set_port_state(dst_port, dst_node, "enable")
 
                 if src_node == dst_node:
                     mapping_actions.map_bidi_single_node(src_node, src_port, dst_port,
@@ -341,8 +349,18 @@ class DriverCommands(DriverCommandsInterface):
                     else:
                         mapping_actions.delete_multi_node_vle(src_node, dst_node,
                                                               vle_name, vlan_id)
-                    system_actions.set_port_state(src_port, "disable")
-                    system_actions.set_port_state(dst_port, "disable")
+
+                    system_actions.set_port_state(
+                        src_port,
+                        self._switch_mapping.get(src_node, "fabric"),
+                        "disable"
+                    )
+                    system_actions.set_port_state(
+                        dst_port,
+                        self._switch_mapping.get(dst_node, "fabric"),
+                        "disable"
+                    )
+
                 except Exception as e:
                     if len(e.args) > 1:
                         exception_messages.append(e.args[1])
@@ -372,8 +390,8 @@ class DriverCommands(DriverCommandsInterface):
                         else:
                             mapping_actions.delete_multi_node_vle(src_node, dst_node,
                                                                   vle_name, vlan_id)
-                        system_actions.set_port_state(src_port, "disable")
-                        system_actions.set_port_state(dst_port, "disable")
+                        system_actions.set_port_state(src_port, src_node, "disable")
+                        system_actions.set_port_state(dst_port, dst_node, "disable")
                     except Exception as e:
                         if len(e.args) > 1:
                             exception_messages.append(e.args[1])

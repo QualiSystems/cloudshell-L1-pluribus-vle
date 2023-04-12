@@ -69,20 +69,20 @@ class SystemActions(object):
         ).execute_command(state_id=state_id)
         return out
 
-    def set_auto_negotiation(self, phys_port, value):
+    def set_auto_negotiation(self, phys_port, node_name, value):
         logical_port_id = self._get_logical(phys_port)
         if value.lower() == "true":
             out = CommandTemplateExecutor(
                 self._cli_service,
                 command_template.SET_AUTO_NEG_ON
-            ).execute_command(port_id=logical_port_id)
+            ).execute_command(node_name=node_name, port_id=logical_port_id)
         else:
             out = CommandTemplateExecutor(
                 self._cli_service,
                 command_template.SET_AUTO_NEG_OFF
-            ).execute_command(port_id=logical_port_id)
+            ).execute_command(node_name=node_name, port_id=logical_port_id)
 
-    def set_port_state(self, port, port_state):
+    def set_port_state(self, port, node_name, port_state):
         port_state = port_state.lower()
         if port_state not in ["enable", "disable"]:
             port_state = "enable"
@@ -90,8 +90,11 @@ class SystemActions(object):
         CommandTemplateExecutor(
             self._cli_service,
             command_template.SET_PORT_STATE
-        ).execute_command(port_id=port,
-                          port_state=port_state)
+        ).execute_command(
+            port_id=port,
+            node_name=node_name,
+            port_state=port_state
+        )
 
     def get_fabric_info(self):
         out = CommandTemplateExecutor(self._cli_service, command_template.FABRIC_INFO,
