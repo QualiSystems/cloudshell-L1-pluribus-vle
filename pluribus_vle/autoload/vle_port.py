@@ -14,8 +14,7 @@ class VLEPort(Port):
     }
 
     def __init__(self, logical_id):
-        name = self.NAME_TEMPLATE.format(
-            logical_id if len(str(logical_id)) > 1 else "0" + str(logical_id))
+        name = self.NAME_TEMPLATE.format(str(logical_id).zfill(3))
         ResourceInfo.__init__(self, logical_id, name, self.FAMILY_NAME, self.MODEL_NAME,
                               "NA")
 

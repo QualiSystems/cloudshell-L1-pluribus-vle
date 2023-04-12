@@ -1,14 +1,9 @@
 from pluribus_vle.rest.api_handler import PluribusApiException
+from pluribus_vle.constants import FORBIDDEN_PORT_STATUS_TABLE
 
 
 class RestMappingActions(object):
     """ Mapping actions. """
-    PORTS = "ports"
-    BIDIR = "bidir"
-    MONITOR_PORTS = "monitor_ports"
-    FORBIDDEN_PORT_STATUS_TABLE = ["pn-fabric", "pn-cluster", "pn-internal", "vle",
-                                   "vxlan-loopback", "disabled"]
-
     def __init__(self, api, switch_mapping, logger):
         self._api = api
         self._switch_mapping = switch_mapping
@@ -48,7 +43,10 @@ class RestMappingActions(object):
             node_2=dst_node_id,
             node_2_port=dst_port
         )
-        self._validate_vle_creation(vle_name)
+        if not self._validate_is_vle_exists(vle_name):
+            raise PluribusApiException(
+                "VLE {} creation failed, see logs for more details".format(vle_name)
+            )
 
     def map_bidi_single_node(self, node, src_port, dst_port, vlan_id, vle_name):
         """ Create BiDirectional connection on single node. """
@@ -65,44 +63,64 @@ class RestMappingActions(object):
             node_2=node_id,
             node_2_port=dst_port
         )
-        self._validate_vle_creation(vle_name)
+
+        if not self._validate_is_vle_exists(vle_name):
+            raise PluribusApiException(
+                "VLE {} creation failed, see logs for more details".format(vle_name)
+            )
 
     def delete_single_node_vle(self, node, vle_name, vlan_id):
         """ Delete VLE on single node. """
-        self._api.delete_vles(vle_name=vle_name)
-        self._validate_vle_deletion(vle_name)
+        if self._validate_is_vle_exists(vle_name):
+            self._api.delete_vles(vle_name=vle_name)
+            if self._validate_is_vle_exists(vle_name):
+                raise PluribusApiException(
+                    "Failed to delete VLE {}, see logs for more details".format(vle_name)
+                )
 
-        self._api.delete_vlan(
-            vlan_id=vlan_id,
-            hostid=self._switch_mapping.get(node, "fabric")
-        )
-        self._validate_vlan_id_deletion(node, vlan_id)
+            self._api.delete_vlan(
+                vlan_id=vlan_id,
+                hostid=self._switch_mapping.get(node, "fabric")
+            )
+
+            if self._validate_vlan_exists(node, vlan_id):
+                raise PluribusApiException(
+                    "Failed to delete vlan {} on node {}".format(vlan_id, node)
+                )
 
     def delete_multi_node_vle(self, src_node, dst_node, vle_name, vlan_id):
         """ Delete VLE on multiple nodes. """
-        self._api.delete_vles(vle_name=vle_name)
-        self._validate_vle_deletion(vle_name)
-        self._api.delete_vlan(
-            vlan_id=vlan_id,
-            hostid=self._switch_mapping.get(src_node, "fabric")
-        )
-        self._validate_vlan_id_deletion(src_node, vlan_id)
-        self._api.delete_vlan(
-            vlan_id=vlan_id,
-            hostid=self._switch_mapping.get(dst_node, "fabric")
-        )
-        self._validate_vlan_id_deletion(dst_node, vlan_id)
+        if self._validate_is_vle_exists(vle_name):
+            self._api.delete_vles(vle_name=vle_name)
+            if self._validate_is_vle_exists(vle_name):
+                raise PluribusApiException(
+                    "Failed to delete VLE {}, see logs for more details".format(vle_name)
+                )
+
+            for node_name in [src_node, dst_node]:
+                if self._validate_vlan_exists(node_name, vlan_id):
+                    self._api.delete_vlan(
+                        vlan_id=vlan_id,
+                        hostid=self._switch_mapping.get(node_name, "fabric")
+                    )
+                    if self._validate_vlan_exists(node_name, vlan_id):
+                        raise PluribusApiException(
+                            "Failed to delete vlan {} on node {}".format(vlan_id, node_name)
+                        )
 
     def connection_table(self):
         """ Build connection table. """
         connection_table = {}
         data = self._api.get_vles()
         for vle in data:
-            src_record = (vle["node1-name"], vle["node-1-port"])
-            dst_record = (vle["node2-name"], vle["node-2-port"])
-            vle_name = vle["name"]
-            connection_table[src_record] = (dst_record, vle_name)
-            connection_table[dst_record] = (src_record, vle_name)
+            src_record = (vle["node1-name"], str(vle["node-1-port"]))
+            dst_record = (vle["node2-name"], str(vle["node-2-port"]))
+            connection_table.update(
+                {
+                    src_record: (dst_record, vle["name"]),
+                    dst_record: (src_record, vle["name"])
+                }
+            )
         return connection_table
 
     def _create_vlan(self, node, port, vlan_id):
@@ -161,29 +179,26 @@ class RestMappingActions(object):
             "Failed to add vxlan {} to tunnel {},"
             "see driver logs for more details".format(vxlan_id, tunnel))
 
-    def _validate_vle_creation(self, vle_name):
-        """ Validate is VLE created successfully. """
-        data = self._api.get_vle_by_name(vle_name=vle_name)
+    def _validate_is_vle_exists(self, vle_name):
+        """Validate is VLE exists."""
+        data = self._api.get_vles()
 
-        if not data or data[0].get("name") != vle_name:
-            raise PluribusApiException(
-                "VLE {} creation failed, see logs for more details".format(vle_name))
-
-    def _validate_vle_deletion(self, vle_name):
-        """ Validate is VLE deleted successfully. """
-        data = self._api.get_vle_by_name(vle_name=vle_name)
         if data:
-            raise PluribusApiException(
-                "Failed to delete VLE {}, see logs for more details".format(vle_name))
+            for vle in data:
+                if vle.get("name") == vle_name:
+                    return True
 
-    def _validate_vlan_id_deletion(self, node_name, vlan_id):
+        return False
+
+    def _validate_vlan_exists(self, node_name, vlan_id):
         """ Validate is VLAN deleted successfully. """
         node_id = self._switch_mapping.get(node_name, "fabric")
-        data = self._api.get_vlan(vlan_id=vlan_id, hostid=node_id)
+        data = self._api.get_vlans(hostid=node_id)
         if data:
-            raise PluribusApiException(
-                "Failed to delete vlan {} on node {}".format(vlan_id, node_name)
-            )
+            for vlan in data:
+                if vlan.get("id") == vlan_id:
+                    return True
+        return False
 
     def vlan_ids_for_port(self, node, port):
         """ Get all VLANs for port. """
@@ -202,7 +217,7 @@ class RestMappingActions(object):
             status_data = data[0].get("status")
             if status_data:
                 for status in status_data.split(","):
-                    if status.strip().lower() in self.FORBIDDEN_PORT_STATUS_TABLE:
+                    if status.strip().lower() in FORBIDDEN_PORT_STATUS_TABLE:
                         raise PluribusApiException(
                             "Port {} is not allowed to use for VLE,"
                             "it has status {}".format((node_name, port), status)
