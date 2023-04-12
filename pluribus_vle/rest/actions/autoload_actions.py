@@ -15,8 +15,8 @@ class RestAutoloadActions(object):
 
         for port in data:
             port_table[port["port"]] = {
-                "speed": port["port"],
-                "autoneg": port["autoneg"]
+                "speed": str(port.get("speed", "")),
+                "autoneg": port.get("autoneg")
             }
 
         return port_table
@@ -27,10 +27,14 @@ class RestAutoloadActions(object):
         associations_table = {}
 
         for vle in data:
-            master_port = (vle["node1-name"], vle["node-1-port"])
-            slave_port = (vle["node2-name"], vle["node-2-port"])
-            associations_table[master_port] = slave_port
-            associations_table[slave_port] = master_port
+            master_port = (vle["node1-name"], str(vle["node-1-port"]))
+            slave_port = (vle["node2-name"], str(vle["node-2-port"]))
+            associations_table.update(
+                {
+                    master_port: slave_port,
+                    slave_port: master_port
+                }
+            )
         return associations_table
 
     def fabric_nodes_table(self, fabric_name):
@@ -50,5 +54,5 @@ class RestAutoloadActions(object):
         """ Get switch info. """
         data = self._api.get_switch_info(hostid=switch_id)[0]
 
-        return {"model": data["model"],
-                "chassis-serial": data["chassis-serial"]}
+        return {"model": data.get("model", "Undefined"),
+                "chassis-serial": data.get("chassis-serial", "Undefined")}

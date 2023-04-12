@@ -380,7 +380,7 @@ class PluribusRESTAPI(BaseAPIClient):
             )
 
     @Decorators.get_result_msg
-    def set_autoneg(self, port_id, is_autoneg=True):
+    def set_autoneg(self, port_id, hostid, is_autoneg=True):
 
         if is_autoneg:
             autoneg = "autoneg"
@@ -388,7 +388,22 @@ class PluribusRESTAPI(BaseAPIClient):
             autoneg = "no-autoneg"
 
         return self._do_put(
-            path="port-configs/{port_id}".format(port_id=port_id),
+            path="port-configs/{port_id}?api.switch={hostid}".format(
+                port_id=port_id,
+                hostid=hostid
+            ),
             json={"autoneg": autoneg},
+            http_error_map=self.ERROR_MAP
+            )
+
+    @Decorators.get_result_msg
+    def set_port_state(self, port_id, hostid, port_state="enable"):
+
+        return self._do_put(
+            path="port-configs/{port_id}?api.switch={hostid}".format(
+                port_id=port_id,
+                hostid=hostid
+            ),
+            json={"enable": port_state},
             http_error_map=self.ERROR_MAP
             )

@@ -36,14 +36,25 @@ class RestSystemActions(object):
     def set_state_id(self, state_id):
         self._api.set_state_id(state_id=state_id)
 
-    def set_auto_negotiation(self, phys_port, value):
+    def set_auto_negotiation(self, phys_port, node_id, value):
         """ Set auto-negotiation value. """
         logical_port_id = self._get_logical(phys_port)
-        if value.lower() == 'true':
+        if value.lower() == "true":
             is_autoneg = True
         else:
             is_autoneg = False
-        self._api.set_autoneg(port_id=logical_port_id, is_autoneg=is_autoneg)
+        self._api.set_autoneg(
+            port_id=logical_port_id,
+            hostid=node_id,
+            is_autoneg=is_autoneg
+        )
+
+    def set_port_state(self, port, node_id, port_state):
+        """ Enable/Disable port. """
+        port_state = port_state.lower()
+        if port_state not in ["enable", "disable"]:
+            port_state = "enable"
+        self._api.set_port_state(port_id=port, hostid=node_id, port_state=port_state)
 
     def get_fabric_info(self):
         """ Get fabric information."""
