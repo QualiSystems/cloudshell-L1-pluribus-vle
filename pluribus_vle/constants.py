@@ -7,5 +7,5 @@ FORBIDDEN_PORT_STATUS_TABLE = [
     "pn-internal",
     "vle",
     "vxlan-loopback",
-    "disabled"
+    "disabled",
 ]

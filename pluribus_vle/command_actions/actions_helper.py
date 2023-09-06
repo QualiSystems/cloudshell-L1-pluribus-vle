@@ -1,4 +1,7 @@
-class ActionsManager(object):
+from __future__ import annotations
+
+
+class ActionsManager:
     def __init__(self, actions_instance, cli_service):
         self._actions_instance = actions_instance
         self._cli_service = cli_service
@@ -11,9 +14,9 @@ class ActionsManager(object):
         self._actions_instance.cli_service = None
 
 
-class ActionsHelper(object):
+class ActionsHelper:
     @staticmethod
-    def parse_table(out):
+    def parse_table(out: str) -> dict[str, str]:
         table = {}
         for line in out.splitlines():
             key_value = line.split(":", 1)
@@ -22,10 +25,7 @@ class ActionsHelper(object):
         return table
 
     @staticmethod
-    def parse_table_by_keys(data, *keys):
-        """
-        :type data: str
-        """
+    def parse_table_by_keys(data: str, *keys) -> list[dict[str, str]]:
         result_table = []
         for line in data.splitlines():
             values = line.strip().split(":")
