@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from typing import TYPE_CHECKING
 
 from cloudshell.cli.service.command_mode import CommandMode
@@ -30,17 +29,17 @@ class ShellCommandMode(CommandMode):
     def enter_actions(self, cli_operations: CliService) -> None:
         pass
 
-    def enter_action_map(self) -> OrderedDict:
-        return OrderedDict()
+    def enter_action_map(self) -> dict:
+        return {}
 
-    def enter_error_map(self) -> OrderedDict:
-        return OrderedDict([(r"[Ee]rror:", "Command error")])
+    def enter_error_map(self) -> dict:
+        return {r"[Ee]rror:": "Command error"}
 
-    def exit_action_map(self) -> OrderedDict:
-        return OrderedDict()
+    def exit_action_map(self) -> dict:
+        return {}
 
-    def exit_error_map(self) -> OrderedDict:
-        return OrderedDict([(r"[Ee]rror:", "Command error")])
+    def exit_error_map(self) -> dict:
+        return {r"[Ee]rror:": "Command error"}
 
 
 class DefaultCommandMode(CommandMode):
@@ -64,17 +63,17 @@ class DefaultCommandMode(CommandMode):
     def enter_actions(self, cli_operations: CliService) -> None:
         pass
 
-    def enter_action_map(self) -> OrderedDict:
-        return OrderedDict()
+    def enter_action_map(self) -> dict:
+        return {}
 
-    def enter_error_map(self) -> OrderedDict:
-        return OrderedDict([(r"[Ee]rror:", "Command error")])
+    def enter_error_map(self) -> dict:
+        return {r"[Ee]rror:": "Command error"}
 
-    def exit_action_map(self) -> OrderedDict:
-        return OrderedDict()
+    def exit_action_map(self) -> dict:
+        return {}
 
-    def exit_error_map(self) -> OrderedDict:
-        return OrderedDict([(r"[Ee]rror:", "Command error")])
+    def exit_error_map(self) -> dict:
+        return {r"[Ee]rror:": "Command error"}
 
 
 CommandMode.RELATIONS_DICT = {ShellCommandMode: {DefaultCommandMode: {}}}

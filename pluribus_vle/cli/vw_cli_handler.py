@@ -26,10 +26,10 @@ class VWCliHandler:
         self._defined_session_types = {"SSH": VWSSHSession, "TELNET": TelnetSession}
 
         self._session_types = (
-            RuntimeConfiguration().read_key("API.CLI.TYPE", ["SSH"])
+            RuntimeConfiguration().read_key("API.CLI.TYPE")
             or self._defined_session_types.keys()
         )
-        self._ports = RuntimeConfiguration().read_key("API.CLI.PORTS", "22")
+        self._ports = RuntimeConfiguration().read_key("API.CLI.PORTS", {"SSH": "22"})
 
         self._host: str | None = None
         self._username: str | None = None
@@ -70,7 +70,7 @@ class VWCliHandler:
         return self._cli.get_session(self._new_sessions(), command_mode)
 
     @property
-    def _default_mode(self) -> CommandMode:
+    def _default_mode(self) -> DefaultCommandMode:
         return self.modes[DefaultCommandMode]
 
     def default_mode_service(self) -> SessionPoolContextManager:

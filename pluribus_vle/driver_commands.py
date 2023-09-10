@@ -147,7 +147,10 @@ class DriverCommands(DriverCommandsInterface):
         raise LayerOneDriverException("This driver does not support MapUni command")
 
     def map_bidi(
-        self, src_port: str, dst_port: str, vlan_id: int | None = None
+            self,
+            src_port: str,
+            dst_port: str,
+            vlan_id: int | None = None
     ) -> None:
         """Create a bidirectional connection between source and destination ports."""
         # REST Implementation
@@ -187,7 +190,7 @@ class DriverCommands(DriverCommandsInterface):
                 self._map_requests[dst_port] = src_port
                 return
 
-        logger.debug(f"MapBidi: SrcPort: {src_port}, DstPort: {dst_port}")
+        logger.info(f"MapBidi: SrcPort: {src_port}, DstPort: {dst_port}")
 
         src_node, src_port = self._convert_port_address(src_port)
         dst_node, dst_port = self._convert_port_address(dst_port)
@@ -242,7 +245,7 @@ class DriverCommands(DriverCommandsInterface):
 
     def map_clear(self, ports: list[str]) -> None:
         """Remove simplex/duplex connection ending on the destination port."""
-        logger.debug(f"MapClear: Ports: {', '.join(ports)}")
+        logger.info(f"MapClear: Ports: {', '.join(ports)}")
 
         # REST Implementation
         if self._rest_api_enabled and self._rest_api:
@@ -317,7 +320,7 @@ class DriverCommands(DriverCommandsInterface):
 
     def map_clear_to(self, src_port: str, dst_ports: list[str]) -> None:
         """Remove simplex/duplex connection ending on the destination port."""
-        logger.debug(
+        logger.info(
             f"MapClearTo: SrcPort: {src_port}, DstPorts: {', '.join(dst_ports)}"
         )
         ports = [src_port]
@@ -343,7 +346,7 @@ class DriverCommands(DriverCommandsInterface):
         self, cs_address: str, attribute_name: str, attribute_value: int
     ) -> None:
         """Set attribute value to the device."""
-        logger.debug(
+        logger.info(
             f"SetAttributeValue: "
             f"Addr: {cs_address}, Name: {attribute_name}, Value: {attribute_value}"
         )
@@ -352,14 +355,14 @@ class DriverCommands(DriverCommandsInterface):
             vlan_id = attribute_value
             src_port = self._vlan_table.get(vlan_id)
             if src_port is None:
-                logger.debug(f"Add vlan record {vlan_id}-{cs_address}")
+                logger.info(f"Add vlan record {vlan_id}-{cs_address}")
                 self._vlan_table[vlan_id] = cs_address
                 return
 
             dst_port = cs_address
             req_dst_port = self._map_requests.get(src_port)
             req_src_port = self._map_requests.get(dst_port)
-            logger.debug(
+            logger.info(
                 f"Mapping called: "
                 f"VlanID: {vlan_id}, SrcPort: {src_port}, DstPort: {dst_port}"
             )
